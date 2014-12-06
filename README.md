@@ -12,7 +12,13 @@ the changes in a diff viewer. They were pretty straightforward.
 
 Then I cloned the plugin from the original repo at `git://git.eclipse.org/gitroot/jdt/eclipse.jdt.debug.git`, checked out
 tag `R4_4_1` and branched off of it. I applied the changes, recompiled the plugin, tested and exported it, then deployed it
-locally to my ECLIPSE_DIR/dropins folder. It seems to work nicely.
+locally to my *ECLIPSE_DIR/dropins* folder. It seems to work nicely.
+
+## Download and installation
+
+You can download the patched plugin for Eclipse Luna 4.4.1 from http://scrum-master.de/download/eclipse_debug_stackfilter/org.eclipse.jdt.debug.ui_3.6.300.201412061413.jar.
+
+Installation is simple: Just copy the JAR into your local *ECLIPSE_DIR/dropins* folder.
 
 ## Future
 
