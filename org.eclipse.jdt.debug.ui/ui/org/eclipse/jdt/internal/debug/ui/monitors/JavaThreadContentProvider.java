@@ -10,9 +10,13 @@
  *******************************************************************************/
 package org.eclipse.jdt.internal.debug.ui.monitors;
 
+import java.util.ArrayList;
+import java.util.regex.Pattern;
+
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.jobs.ISchedulingRule;
 import org.eclipse.debug.core.DebugException;
+import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.model.IDebugElement;
 import org.eclipse.debug.core.model.IStackFrame;
 import org.eclipse.debug.internal.ui.viewers.model.provisional.IChildrenCountUpdate;
@@ -23,7 +27,11 @@ import org.eclipse.debug.internal.ui.viewers.model.provisional.IViewerUpdate;
 import org.eclipse.jdt.debug.core.IJavaDebugTarget;
 import org.eclipse.jdt.debug.core.IJavaThread;
 import org.eclipse.jdt.debug.ui.JavaDebugUtils;
+import org.eclipse.jdt.internal.debug.core.model.JDIStackFrame;
 import org.eclipse.jdt.internal.debug.core.model.JDIThread;
+import org.eclipse.jdt.internal.debug.ui.IJDIPreferencesConstants;
+import org.eclipse.jdt.internal.debug.ui.JDIDebugUIPlugin;
+import org.eclipse.jface.preference.IPreferenceStore;
 
 /**
  * Java thread presentation adapter.
@@ -31,6 +39,9 @@ import org.eclipse.jdt.internal.debug.core.model.JDIThread;
  * @since 3.3
  */
 public class JavaThreadContentProvider extends JavaElementContentProvider {
+	private static final Pattern STEPFILTER_ESCAPE = Pattern.compile("\\.|\\$|\\||\\+"); //$NON-NLS-1$
+	private static final Pattern STEPFILTER_WILDCARD = Pattern.compile("\\*"); //$NON-NLS-1$
+	private static final Pattern STEPFILTER_SEPARATOR = Pattern.compile(","); //$NON-NLS-1$
 
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.internal.ui.viewers.model.provisional.elements.ElementContentProvider#getChildCount(java.lang.Object, org.eclipse.debug.internal.ui.viewers.provisional.IPresentationContext)
@@ -41,7 +52,7 @@ public class JavaThreadContentProvider extends JavaElementContentProvider {
 		if (!thread.isSuspended()) {
 			return 0;
 		}
-		int childCount = thread.getFrameCount();
+		int childCount = getStackFrames(thread).length;
 		if (isDisplayMonitors()) {
 			if (((IJavaDebugTarget) thread.getDebugTarget()).supportsMonitorInformation()) {
 				childCount+= thread.getOwnedMonitors().length;
@@ -78,7 +89,7 @@ public class JavaThreadContentProvider extends JavaElementContentProvider {
 					}
 				}
 			}
-			IStackFrame[] frames = thread.getStackFrames();
+			IStackFrame[] frames = getStackFrames(thread);
 			if (!isDisplayMonitors()) {
 				return frames;
 			}
@@ -171,5 +182,32 @@ public class JavaThreadContentProvider extends JavaElementContentProvider {
 		return null;
 	}
 	
+	private IStackFrame[] getStackFrames(IJavaThread thread) throws DebugException {
+		IStackFrame[] stackFrames = thread.getStackFrames();
+		if (!DebugPlugin.isUseStepFilters()) {
+			return stackFrames;
+		}
+		ArrayList<IStackFrame> frames = new ArrayList<IStackFrame>();
+		Pattern filters = this.getStepFilters();
 
+		for (int i = 0; i < stackFrames.length; ++i) {
+			JDIStackFrame frame = (JDIStackFrame) stackFrames[i];
+			boolean exclude = filters.matcher(frame.getDeclaringTypeName()).matches();
+			if (!exclude) {
+				frames.add(stackFrames[i]);
+			}
+		}
+
+		return frames.toArray(new IStackFrame[frames.size()]);
+	}
+
+	private Pattern getStepFilters() {
+		IPreferenceStore store = JDIDebugUIPlugin.getDefault().getPreferenceStore();
+		String filters = store.getString(IJDIPreferencesConstants.PREF_ACTIVE_FILTERS_LIST);
+		filters = STEPFILTER_ESCAPE.matcher(filters).replaceAll("\\\\$0"); //$NON-NLS-1$
+		filters = STEPFILTER_WILDCARD.matcher(filters).replaceAll(".*"); //$NON-NLS-1$
+		filters = STEPFILTER_SEPARATOR.matcher(filters).replaceAll("|"); //$NON-NLS-1$
+		Pattern pattern = Pattern.compile("^(" + filters + ")$"); //$NON-NLS-1$//$NON-NLS-2$
+		return pattern;
+	}
 }
