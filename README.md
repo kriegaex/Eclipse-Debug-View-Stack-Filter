@@ -17,6 +17,7 @@ locally to my *ECLIPSE_DIR/dropins* folder. It seems to work nicely.
 ## Download and installation
 
 You can download the patched plugin for Eclipse Luna 4.4.1 from http://scrum-master.de/download/eclipse_debug_stackfilter/org.eclipse.jdt.debug.ui_3.6.300.201412061413.jar.
+
 You can download the patched plugin for Eclipse Mars 4.5.1 from http://scrum-master.de/download/eclipse_debug_stackfilter/org.eclipse.jdt.debug.ui_3.7.0.v20150505-1916.jar (untested!).
 
 Installation is simple: Just copy the JAR into your local *ECLIPSE_DIR/dropins* folder.
