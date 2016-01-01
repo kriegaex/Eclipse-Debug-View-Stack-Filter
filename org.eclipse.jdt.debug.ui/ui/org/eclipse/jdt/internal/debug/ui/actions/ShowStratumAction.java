@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2011 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -44,20 +44,23 @@ public class ShowStratumAction implements IObjectActionDelegate, IMenuCreator {
     /* (non-Javadoc)
      * @see org.eclipse.ui.IObjectActionDelegate#setActivePart(org.eclipse.jface.action.IAction, org.eclipse.ui.IWorkbenchPart)
      */
-    public void setActivePart(IAction action, IWorkbenchPart targetPart) {
+    @Override
+	public void setActivePart(IAction action, IWorkbenchPart targetPart) {
     	fPart = targetPart;
     }
 
     /* (non-Javadoc)
      * @see org.eclipse.ui.IActionDelegate#run(org.eclipse.jface.action.IAction)
      */
-    public void run(IAction action) {
+    @Override
+	public void run(IAction action) {
     }
 
     /* (non-Javadoc)
      * @see org.eclipse.ui.IActionDelegate#selectionChanged(org.eclipse.jface.action.IAction, org.eclipse.jface.viewers.ISelection)
      */
-    public void selectionChanged(IAction action, ISelection selection) {
+    @Override
+	public void selectionChanged(IAction action, ISelection selection) {
         if (selection instanceof IStructuredSelection) {
             fSelection = (IStructuredSelection) selection;
             action.setMenuCreator(this);
@@ -69,14 +72,16 @@ public class ShowStratumAction implements IObjectActionDelegate, IMenuCreator {
     /* (non-Javadoc)
      * @see org.eclipse.jface.action.IMenuCreator#getMenu(org.eclipse.swt.widgets.Control)
      */
-    public Menu getMenu(Control parent) {
+    @Override
+	public Menu getMenu(Control parent) {
         return null;
     }
 
     /* (non-Javadoc)
      * @see org.eclipse.jface.action.IMenuCreator#getMenu(org.eclipse.swt.widgets.Menu)
      */
-    public Menu getMenu(Menu parent) {
+    @Override
+	public Menu getMenu(Menu parent) {
 		//Create the new menu. The menu will get filled when it is about to be shown. see fillMenu(Menu).
 		Menu menu = new Menu(parent);
 		menu.addMenuListener(new MenuAdapter() {
@@ -100,7 +105,7 @@ public class ShowStratumAction implements IObjectActionDelegate, IMenuCreator {
      */
     private void fillMenu(Menu m) {
         IStackFrame frame = (IStackFrame) fSelection.getFirstElement();
-        final IJavaStackFrame javaStackFrame = (IJavaStackFrame) frame.getAdapter(IJavaStackFrame.class);
+		final IJavaStackFrame javaStackFrame = frame.getAdapter(IJavaStackFrame.class);
         if (javaStackFrame != null) {
 	        try {
 	            IJavaReferenceType declaringType = javaStackFrame.getReferenceType();
@@ -136,7 +141,7 @@ public class ShowStratumAction implements IObjectActionDelegate, IMenuCreator {
                 }
                 DebugEvent event = new DebugEvent(frame, DebugEvent.CHANGE, DebugEvent.CONTENT);
                 DebugPlugin.getDefault().fireDebugEventSet(new DebugEvent[]{event});
-                ISourceDisplay display = (ISourceDisplay) frame.getAdapter(ISourceDisplay.class);
+                ISourceDisplay display = frame.getAdapter(ISourceDisplay.class);
                 if (display != null) {
                 	display.displaySource(frame, fPart.getSite().getPage(), true);
                 }
@@ -148,7 +153,8 @@ public class ShowStratumAction implements IObjectActionDelegate, IMenuCreator {
     /* (non-Javadoc)
      * @see org.eclipse.jface.action.IMenuCreator#dispose()
      */
-    public void dispose() {
+    @Override
+	public void dispose() {
     }
     
 

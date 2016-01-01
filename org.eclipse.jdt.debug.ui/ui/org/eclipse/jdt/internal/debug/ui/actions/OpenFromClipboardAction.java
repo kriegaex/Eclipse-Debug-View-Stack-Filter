@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * Copyright (c) 2010, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -16,41 +16,9 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.eclipse.swt.dnd.Clipboard;
-import org.eclipse.swt.dnd.TextTransfer;
-import org.eclipse.swt.widgets.Display;
-
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.SubMonitor;
-
-import org.eclipse.jface.action.IAction;
-import org.eclipse.jface.dialogs.DialogSettings;
-import org.eclipse.jface.dialogs.IDialogConstants;
-import org.eclipse.jface.dialogs.IDialogSettings;
-import org.eclipse.jface.dialogs.IInputValidator;
-import org.eclipse.jface.dialogs.InputDialog;
-import org.eclipse.jface.operation.IRunnableWithProgress;
-import org.eclipse.jface.preference.IPreferenceStore;
-import org.eclipse.jface.viewers.ISelection;
-
-import org.eclipse.jface.text.BadLocationException;
-import org.eclipse.jface.text.IDocument;
-
-import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.IWorkbenchWindow;
-import org.eclipse.ui.IWorkbenchWindowActionDelegate;
-import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.PlatformUI;
-import org.eclipse.ui.console.ConsolePlugin;
-import org.eclipse.ui.console.IConsole;
-import org.eclipse.ui.console.IConsoleManager;
-import org.eclipse.ui.dialogs.ElementListSelectionDialog;
-
-import org.eclipse.ui.texteditor.IDocumentProvider;
-import org.eclipse.ui.texteditor.ITextEditor;
-
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.ISourceRange;
@@ -65,14 +33,38 @@ import org.eclipse.jdt.core.search.SearchPattern;
 import org.eclipse.jdt.core.search.SearchRequestor;
 import org.eclipse.jdt.core.search.TypeNameMatch;
 import org.eclipse.jdt.core.search.TypeNameMatchRequestor;
-
 import org.eclipse.jdt.internal.debug.ui.IJDIPreferencesConstants;
 import org.eclipse.jdt.internal.debug.ui.JDIDebugUIPlugin;
 import org.eclipse.jdt.internal.debug.ui.console.JavaStackTraceConsole;
 import org.eclipse.jdt.internal.debug.ui.console.JavaStackTraceConsoleFactory;
-
 import org.eclipse.jdt.ui.JavaElementLabelProvider;
 import org.eclipse.jdt.ui.JavaUI;
+import org.eclipse.jface.action.IAction;
+import org.eclipse.jface.dialogs.DialogSettings;
+import org.eclipse.jface.dialogs.IDialogConstants;
+import org.eclipse.jface.dialogs.IDialogSettings;
+import org.eclipse.jface.dialogs.IInputValidator;
+import org.eclipse.jface.dialogs.InputDialog;
+import org.eclipse.jface.operation.IRunnableWithProgress;
+import org.eclipse.jface.preference.IPreferenceStore;
+import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.IDocument;
+import org.eclipse.jface.viewers.ISelection;
+import org.eclipse.swt.dnd.Clipboard;
+import org.eclipse.swt.dnd.TextTransfer;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.IWorkbenchWindow;
+import org.eclipse.ui.IWorkbenchWindowActionDelegate;
+import org.eclipse.ui.PartInitException;
+import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.console.ConsolePlugin;
+import org.eclipse.ui.console.IConsole;
+import org.eclipse.ui.console.IConsoleManager;
+import org.eclipse.ui.dialogs.ElementListSelectionDialog;
+import org.eclipse.ui.texteditor.IDocumentProvider;
+import org.eclipse.ui.texteditor.ITextEditor;
 
 /**
  * Action delegate for Open from Clipboard action.
@@ -125,10 +117,21 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 
 	/**
 	 * Pattern to match a line from a stack trace e.g.
+	 * <code>(Assert.java:41)</code>
+	 */
+	private static final String STACK_TRACE_PARENTHESIZED_PATTERN = "\\(" + WS + JAVA_FILE_LINE_PATTERN + WS + "\\)"; //$NON-NLS-1$ //$NON-NLS-2$
+
+	/**
+	 * Pattern to match a line from a stack trace e.g.
 	 * <code> at org.eclipse.core.runtime.Assert.isLegal(Assert.java:41)</code>
 	 */
-	private static final String STACK_TRACE_LINE_PATTERN = ".*\\(" //$NON-NLS-1$
-			+ WS + JAVA_FILE_LINE_PATTERN + WS + "\\)"; //$NON-NLS-1$
+	private static final String STACK_TRACE_LINE_PATTERN = "[^()]*?" + STACK_TRACE_PARENTHESIZED_PATTERN; //$NON-NLS-1$
+
+	/**
+	 * Pattern to match a line from a stack trace e.g.
+	 * <code> at org.eclipse.core.runtime.Assert.isLegal(Assert.java:41)</code>
+	 */
+	private static final String STACK_TRACE_QUALIFIED_LINE_PATTERN = "[^()]*?(" + STRICT_QUALIFIED_NAME_PATTERN + ")" + WS + STACK_TRACE_PARENTHESIZED_PATTERN; //$NON-NLS-1$ //$NON-NLS-2$
 
 	/**
 	 * Pattern to match a method e.g.
@@ -184,6 +187,7 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 	/*
 	 * @see org.eclipse.ui.IActionDelegate#run(org.eclipse.jface.action.IAction)
 	 */
+	@Override
 	public void run(IAction action) {
 		Clipboard clipboard = new Clipboard(Display.getDefault());
 		TextTransfer textTransfer = TextTransfer.getInstance();
@@ -193,7 +197,7 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 			return;
 		}
 
-		String trimmedText = inputText.replaceAll("\\s", ""); //$NON-NLS-1$ //$NON-NLS-2$
+		String trimmedText = inputText.replaceAll("\\s+", " "); //$NON-NLS-1$ //$NON-NLS-2$
 		List<Object> matches = new ArrayList<Object>();
 		int line = 0;
 		try {
@@ -247,24 +251,33 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 	}
 
 	private static int getMatchingPattern(String s) {
-		if (s.matches(JAVA_FILE_LINE_PATTERN))
+		if (s.matches(JAVA_FILE_LINE_PATTERN)) {
 			return JAVA_FILE_LINE;
-		if (s.matches(JAVA_FILE_PATTERN))
+		}
+		if (s.matches(JAVA_FILE_PATTERN)) {
 			return JAVA_FILE;
-		if (s.matches(TYPE_LINE_PATTERN))
+		}
+		if (s.matches(TYPE_LINE_PATTERN)) {
 			return TYPE_LINE;
-		if (s.matches(STACK_TRACE_LINE_PATTERN))
+		}
+		if (s.matches(STACK_TRACE_LINE_PATTERN)) {
 			return STACK_TRACE_LINE;
-		if (s.matches(METHOD_PATTERN))
+		}
+		if (s.matches(METHOD_PATTERN)) {
 			return METHOD;
-		if (s.matches(STACK_PATTERN))
+		}
+		if (s.matches(STACK_PATTERN)) {
 			return STACK;
-		if (s.matches(MEMBER_PATTERN))
+		}
+		if (s.matches(MEMBER_PATTERN)) {
 			return MEMBER;
-		if (s.matches(METHOD_JAVADOC_REFERENCE_PATTERN))
+		}
+		if (s.matches(METHOD_JAVADOC_REFERENCE_PATTERN)) {
 			return METHOD_JAVADOC_REFERENCE;
-		if (s.matches(QUALIFIED_NAME_PATTERN))
+		}
+		if (s.matches(QUALIFIED_NAME_PATTERN)) {
 			return QUALIFIED_NAME;
+		}
 		return INVALID;
 	}
 
@@ -315,17 +328,17 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 			return line;
 		}
 		case STACK_TRACE_LINE: {
-			int index1 = s.indexOf('(');
-			int index2 = s.indexOf(')');
+			int index1 = s.lastIndexOf('(');
+			int index2 = s.lastIndexOf(')');
 			String typeLine = s.substring(index1 + 1, index2).trim();
 			int index = typeLine.indexOf(':');
 			String lineNumber = typeLine.substring(index + 1, typeLine.length()).trim();
 			int line = (Integer.valueOf(lineNumber)).intValue();
 
-			Pattern pattern = Pattern.compile(STRICT_QUALIFIED_NAME_PATTERN + WS + "\\("); //$NON-NLS-1$
+			Pattern pattern = Pattern.compile(STACK_TRACE_QUALIFIED_LINE_PATTERN);
 			Matcher matcher = pattern.matcher(s);
 			if (matcher.find()) {
-				String qualifiedName = matcher.group();
+				String qualifiedName = matcher.group(1);
 				index = qualifiedName.lastIndexOf('.');
 				qualifiedName = qualifiedName.substring(0, index);
 				getTypeMatches(qualifiedName, matches);
@@ -372,6 +385,7 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 	 */
 	private static void getTypeMatches(final String typeName, final List<Object> matches) throws InterruptedException {
 		executeRunnable(new IRunnableWithProgress() {
+			@Override
 			public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
 				doTypeSearch(typeName, matches, monitor);
 			}
@@ -388,6 +402,7 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 	 */
 	private static void getMethodMatches(final String s, final List<Object> matches) throws InterruptedException {
 		executeRunnable(new IRunnableWithProgress() {
+			@Override
 			public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
 				doMemberSearch(s, matches, true, true, false, monitor, 100);
 			}
@@ -404,6 +419,7 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 	 */
 	private static void getMemberMatches(final String s, final List<Object> matches) throws InterruptedException {
 		executeRunnable(new IRunnableWithProgress() {
+			@Override
 			public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
 				doMemberSearch(s, matches, true, true, true, monitor, 100);
 			}
@@ -420,6 +436,7 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 	 */
 	private static void getNameMatches(final String s, final List<Object> matches) throws InterruptedException {
 		executeRunnable(new IRunnableWithProgress() {
+			@Override
 			public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
 				SubMonitor progress = SubMonitor.convert(monitor, 100);
 				progress.beginTask(TASK_NAME, 100);
@@ -466,8 +483,9 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 			dialog.setMultipleSelection(true);
 
 			int result = dialog.open();
-			if (result != IDialogConstants.OK_ID)
+			if (result != IDialogConstants.OK_ID) {
 				return;
+			}
 
 			Object[] elements = dialog.getResult();
 			if (elements != null && elements.length > 0) {
@@ -549,14 +567,16 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 	private static void openInputEditDialog(String inputText) {
 		IWorkbenchWindow window = JDIDebugUIPlugin.getActiveWorkbenchWindow();
 		IInputValidator validator = new IInputValidator() {
+			@Override
 			public String isValid(String newText) {
 				return newText.length() == 0 ? "" : null; //$NON-NLS-1$
 			}
 		};
 		InputDialog dialog = new InputDialog(window.getShell(), ActionMessages.OpenFromClipboardAction_OpenFromClipboard, ActionMessages.OpenFromClipboardAction_ElementToOpen, inputText, validator);
 		int result = dialog.open();
-		if (result != IDialogConstants.OK_ID)
+		if (result != IDialogConstants.OK_ID) {
 			return;
+		}
 
 		inputText = dialog.getValue();
 		handleSingleLineInput(inputText);
@@ -574,8 +594,9 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 		return new SearchRequestor() {
 			@Override
 			public void acceptSearchMatch(SearchMatch match) {
-				if (match.getAccuracy() == SearchMatch.A_ACCURATE)
+				if (match.getAccuracy() == SearchMatch.A_ACCURATE) {
 					matches.add(match.getElement());
+				}
 			}
 		};
 	}
@@ -707,18 +728,21 @@ public class OpenFromClipboardAction implements IWorkbenchWindowActionDelegate {
 	 * @see org.eclipse.ui.IActionDelegate#selectionChanged(org.eclipse.jface.action .IAction,
 	 * org.eclipse.jface.viewers.ISelection)
 	 */
+	@Override
 	public void selectionChanged(IAction action, ISelection selection) {
 	}
 
 	/*
 	 * @see org.eclipse.ui.IWorkbenchWindowActionDelegate#dispose()
 	 */
+	@Override
 	public void dispose() {
 	}
 
 	/*
 	 * @see org.eclipse.ui.IWorkbenchWindowActionDelegate#init(org.eclipse.ui. IWorkbenchWindow)
 	 */
+	@Override
 	public void init(IWorkbenchWindow window) {
 	}
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Copyright (c) 2012, 2014 Eclipse Foundation and others.
+  Copyright (c) 2012, 2015 Eclipse Foundation and others.
   All rights reserved. This program and the accompanying materials
   are made available under the terms of the Eclipse Distribution License v1.0
   which accompanies this distribution, and is available at
@@ -14,18 +14,17 @@
   <parent>
     <artifactId>eclipse.jdt.debug</artifactId>
     <groupId>eclipse.jdt.debug</groupId>
-    <version>4.5.0-SNAPSHOT</version>
+    <version>4.6.0-SNAPSHOT</version>
   </parent>
   <groupId>org.eclipse.jdt</groupId>
   <artifactId>org.eclipse.jdt.launching</artifactId>
-  <version>3.7.200-SNAPSHOT</version>
+  <version>3.8.0-SNAPSHOT</version>
   <packaging>eclipse-plugin</packaging>
   
   <build>
         <plugins>
           <plugin>
             <artifactId>maven-antrun-plugin</artifactId>
-            <version> 1.7 </version>
             <executions>
               <execution>
                 <id>compile-internal-jar</id>
@@ -41,28 +40,6 @@
                 </goals>
               </execution>
             </executions>
-            <dependencies>
-              <dependency>
-                <groupId>bsf</groupId>
-                <artifactId>bsf</artifactId>
-                <version>2.4.0</version>
-              </dependency>
-              <dependency>
-                <groupId>rhino</groupId>
-                <artifactId>js</artifactId>
-                <version>1.7R2</version>
-              </dependency>
-              <dependency>
-                <groupId>org.apache.ant</groupId>
-                <artifactId>ant-apache-bsf</artifactId>
-                <version>1.8.3</version>
-              </dependency>
-              <dependency>
-                <groupId>org.apache.ant</groupId>
-                <artifactId>ant-nodeps</artifactId>
-                <version>1.8.1</version>
-              </dependency>
-            </dependencies>
           </plugin>
         </plugins>
       </build>

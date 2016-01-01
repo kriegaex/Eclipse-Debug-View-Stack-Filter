@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2013 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -811,6 +811,7 @@ public abstract class AbstractJavaLaunchConfigurationDelegate extends LaunchConf
 	 *            the debug events.
 	 * @see org.eclipse.debug.core.IDebugEventSetListener#handleDebugEvents(DebugEvent[])
 	 */
+	@Override
 	public void handleDebugEvents(DebugEvent[] events) {
 		for (int i = 0; i < events.length; i++) {
 			DebugEvent event = events[i];
@@ -991,7 +992,10 @@ public abstract class AbstractJavaLaunchConfigurationDelegate extends LaunchConf
 		IJavaProject jp = getJavaProject(configuration);
 		if (jp != null) {
 			IProject p = jp.getProject();
-			return p.getLocation().toFile();
+			// p.getLocation() will be null in the case where the location is relative to an undefined workspace path variable.
+			if (p.getLocation() != null) {
+				return p.getLocation().toFile();
+			}
 		}
 		return null;
 	}

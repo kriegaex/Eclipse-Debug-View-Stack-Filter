@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2007, 2012 Ecliptical Software Inc. and others.
+ * Copyright (c) 2007, 2015 Ecliptical Software Inc. and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -64,6 +64,7 @@ public class LaunchConfigurationQueryParticipant implements IQueryParticipant {
 	/* (non-Javadoc)
 	 * @see org.eclipse.jdt.ui.search.IQueryParticipant#estimateTicks(org.eclipse.jdt.ui.search.QuerySpecification)
 	 */
+	@Override
 	public int estimateTicks(QuerySpecification query) {
 		if (isValid(query)) {
 			return 50;
@@ -74,6 +75,7 @@ public class LaunchConfigurationQueryParticipant implements IQueryParticipant {
 	/* (non-Javadoc)
 	 * @see org.eclipse.jdt.ui.search.IQueryParticipant#getUIParticipant()
 	 */
+	@Override
 	public synchronized IMatchPresentation getUIParticipant() {
 		if (uiParticipant == null) {
 			uiParticipant = new UIParticipant();
@@ -84,6 +86,7 @@ public class LaunchConfigurationQueryParticipant implements IQueryParticipant {
 	/* (non-Javadoc)
 	 * @see org.eclipse.jdt.ui.search.IQueryParticipant#search(org.eclipse.jdt.ui.search.ISearchRequestor, org.eclipse.jdt.ui.search.QuerySpecification, org.eclipse.core.runtime.IProgressMonitor)
 	 */
+	@Override
 	public void search(ISearchRequestor requestor, QuerySpecification query, IProgressMonitor monitor) throws CoreException {
 		if (!isValid(query)) {
 			return;
@@ -143,7 +146,7 @@ public class LaunchConfigurationQueryParticipant implements IQueryParticipant {
 	 * search chars to Java RegEx chars
 	 */
 	private String quotePattern(String pattern) {
-		StringTokenizer t = new StringTokenizer(pattern, ".?*$", true); //$NON-NLS-1$
+		StringTokenizer t = new StringTokenizer(pattern, ".?*$()", true); //$NON-NLS-1$
 		StringBuffer buf = new StringBuffer();
 		String token = null;
 		while (t.hasMoreTokens()) {
@@ -159,6 +162,14 @@ public class LaunchConfigurationQueryParticipant implements IQueryParticipant {
 					break;
 				}
 				case '$': {
+					buf.append('\\');
+					break;
+				}
+				case '(': {
+					buf.append('\\');
+					break;
+				}
+				case ')': {
 					buf.append('\\');
 					break;
 				}
@@ -274,6 +285,7 @@ public class LaunchConfigurationQueryParticipant implements IQueryParticipant {
 		/* (non-Javadoc)
 		 * @see org.eclipse.jdt.ui.search.IMatchPresentation#createLabelProvider()
 		 */
+		@Override
 		public ILabelProvider createLabelProvider() {
 			return DebugUITools.newDebugModelPresentation();
 		}
@@ -281,6 +293,7 @@ public class LaunchConfigurationQueryParticipant implements IQueryParticipant {
 		/* (non-Javadoc)
 		 * @see org.eclipse.jdt.ui.search.IMatchPresentation#showMatch(org.eclipse.search.ui.text.Match, int, int, boolean)
 		 */
+		@Override
 		public void showMatch(Match match, int currentOffset, int currentLength, boolean activate) throws PartInitException {
 			Object o = match.getElement();
 			if (o instanceof ILaunchConfiguration) {

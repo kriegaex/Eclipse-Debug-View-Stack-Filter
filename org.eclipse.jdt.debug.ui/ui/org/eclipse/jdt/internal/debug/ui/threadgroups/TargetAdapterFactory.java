@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2006, 2007 IBM Corporation and others.
+ * Copyright (c) 2006, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -28,15 +28,17 @@ public class TargetAdapterFactory implements IAdapterFactory{
 	/* (non-Javadoc)
 	 * @see org.eclipse.core.runtime.IAdapterFactory#getAdapter(java.lang.Object, java.lang.Class)
 	 */
-	public Object getAdapter(Object adaptableObject, Class adapterType) {
+	@Override
+	@SuppressWarnings("unchecked")
+	public <T> T getAdapter(Object adaptableObject, Class<T> adapterType) {
 		if (adapterType.equals(IModelProxyFactory.class)) {
 			if (adaptableObject instanceof IJavaDebugTarget) {
-				return fgJavaModelProxyFactory;
+				return (T) fgJavaModelProxyFactory;
 			}
 		}
 		if (adapterType.equals(IElementContentProvider.class)) {
 			if (adaptableObject instanceof IJavaDebugTarget) {
-				return fgCPTarget;
+				return (T) fgCPTarget;
 			}
 		}
 		return null;
@@ -45,7 +47,8 @@ public class TargetAdapterFactory implements IAdapterFactory{
 	/* (non-Javadoc)
 	 * @see org.eclipse.core.runtime.IAdapterFactory#getAdapterList()
 	 */
-	public Class[] getAdapterList() {
+	@Override
+	public Class<?>[] getAdapterList() {
 		return new Class[]{
 				IModelProxyFactory.class,
 				IElementContentProvider.class};

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2014 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -12,6 +12,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *     Jesper Steen Møller - bug 422029: [1.8] Enable debug evaluation support for default methods
+ *     Jesper Steen Møller - bug 426903: [1.8] Cannot evaluate super call to default method
  *     Jesper Steen Møller - bug 341232
  *******************************************************************************/
 package org.eclipse.jdt.debug.tests;
@@ -25,8 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import junit.framework.TestCase;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IFolder;
@@ -104,6 +103,7 @@ import org.eclipse.jdt.debug.core.IJavaDebugTarget;
 import org.eclipse.jdt.debug.core.IJavaExceptionBreakpoint;
 import org.eclipse.jdt.debug.core.IJavaLineBreakpoint;
 import org.eclipse.jdt.debug.core.IJavaMethodBreakpoint;
+import org.eclipse.jdt.debug.core.IJavaObject;
 import org.eclipse.jdt.debug.core.IJavaPatternBreakpoint;
 import org.eclipse.jdt.debug.core.IJavaStackFrame;
 import org.eclipse.jdt.debug.core.IJavaStratumLineBreakpoint;
@@ -166,6 +166,8 @@ import org.osgi.service.prefs.BackingStoreException;
 
 import com.sun.jdi.InternalException;
 
+import junit.framework.TestCase;
+
 /**
  * Tests for launch configurations
  */
@@ -185,7 +187,8 @@ public abstract class AbstractDebugTest extends TestCase implements  IEvaluation
  "DropTests", "ThrowsNPE", "ThrowsException", "org.eclipse.debug.tests.targets.Watchpoint",
 			"org.eclipse.debug.tests.targets.BreakpointsLocationBug344984", "org.eclipse.debug.tests.targets.CallLoop", "A",
 			"HitCountLooper", "CompileError", "MultiThreadedLoop", "HitCountException", "MultiThreadedException", "MultiThreadedList", "MethodLoop", "StepFilterOne",
-			"StepFilterFour", "EvalArrayTests", "EvalSimpleTests", "EvalTypeTests", "EvalNestedTypeTests", "EvalTypeHierarchyTests", "WorkingDirectoryTest", 
+			"StepFilterFour", "EvalArrayTests", "EvalSimpleTests", "EvalTypeTests", "EvalNestedTypeTests", "EvalTypeHierarchyTests",
+			"EvalAnonymousClassVariableTests", "WorkingDirectoryTest",
 			"OneToTen", "OneToTenPrint", "FloodConsole", "ConditionalStepReturn", "VariableChanges", "DefPkgReturnType", "InstanceFilterObject", "org.eclipse.debug.tests.targets.CallStack", 
 			"org.eclipse.debug.tests.targets.ThreadStack", "org.eclipse.debug.tests.targets.HcrClass", "org.eclipse.debug.tests.targets.StepIntoSelectionClass", 
 			"WatchItemTests", "ArrayTests", "ByteArrayTests", "PerfLoop", "Console80Chars", "ConsoleStackTrace", "ConsoleVariableLineLength", "StackTraces", 
@@ -455,6 +458,7 @@ public abstract class AbstractDebugTest extends TestCase implements  IEvaluation
 	        	jp = createProject(ONE_EIGHT_PROJECT_NAME, JavaProjectHelper.TEST_1_8_SRC_DIR.toString(), JavaProjectHelper.JAVA_SE_1_8_EE_NAME, false);
 	    		cfgs.add(createLaunchConfiguration(jp, "EvalTest18"));
 	    		cfgs.add(createLaunchConfiguration(jp, "EvalTestIntf18"));
+				cfgs.add(createLaunchConfiguration(jp, "EvalIntfSuperDefault"));
 	    		loaded18 = true;
 	    		waitForBuild();
 	        }
@@ -2125,6 +2129,7 @@ public abstract class AbstractDebugTest extends TestCase implements  IEvaluation
 	protected IEvaluationResult evaluate(String snippet, IJavaThread thread) throws Exception {
 		class Listener implements IEvaluationListener {
 			IEvaluationResult fResult;
+			@Override
 			public void evaluationComplete(IEvaluationResult result) {
 				fResult= result;
 			}
@@ -2149,6 +2154,7 @@ public abstract class AbstractDebugTest extends TestCase implements  IEvaluation
 	/**
 	 * @see IEvaluationListener#evaluationComplete(IEvaluationResult)
 	 */
+	@Override
 	public void evaluationComplete(IEvaluationResult result) {
 		fEvaluationResult = result;
 	}
@@ -2375,12 +2381,15 @@ public abstract class AbstractDebugTest extends TestCase implements  IEvaluation
                 IVariable variable2 = variables[i];
                 System.out.println("\t" + presentation.getText(variable2)); //$NON-NLS-1$
             }
-            if (!frame.isStatic()) {
-                variables = frame.getThis().getVariables();
-                for (int i = 0; i < variables.length; i++) {
-                    IVariable variable2 = variables[i];
-                    System.out.println("\t" + presentation.getText(variable2)); //$NON-NLS-1$
-                }
+			if (!frame.isStatic() && !frame.isNative()) {
+				IJavaObject ths = frame.getThis();
+				if (ths != null) {
+					variables = ths.getVariables();
+					for (int i = 0; i < variables.length; i++) {
+						IVariable variable2 = variables[i];
+						System.out.println("\t" + presentation.getText(variable2)); //$NON-NLS-1$
+					}
+				}
             }
         }
         return variable;
@@ -2574,10 +2583,13 @@ public abstract class AbstractDebugTest extends TestCase implements  IEvaluation
 		final Object lock = new Object();
 		final IBreakpoint[] breakpoints = new IBreakpoint[1];
 		IBreakpointListener listener = new IBreakpointListener() {
+			@Override
 			public void breakpointRemoved(IBreakpoint breakpoint, IMarkerDelta delta) {
 			}
+			@Override
 			public void breakpointChanged(IBreakpoint breakpoint, IMarkerDelta delta) {
 			}
+			@Override
 			public void breakpointAdded(IBreakpoint breakpoint) {
 				synchronized (lock) {
 					breakpoints[0] = breakpoint;
@@ -2600,7 +2612,8 @@ public abstract class AbstractDebugTest extends TestCase implements  IEvaluation
 	 */
 	protected void closeAllEditors() {
 	    Runnable closeAll = new Runnable() {
-            public void run() {
+            @Override
+			public void run() {
                 IWorkbenchWindow activeWorkbenchWindow = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
                 activeWorkbenchWindow.getActivePage().closeAllEditors(false);
             }
@@ -2655,6 +2668,7 @@ public abstract class AbstractDebugTest extends TestCase implements  IEvaluation
 		class Listener implements IEvaluationListener {
 			IEvaluationResult fResult;
 			
+			@Override
 			public void evaluationComplete(IEvaluationResult result) {
 				fResult= result;
 			}
@@ -2669,11 +2683,12 @@ public abstract class AbstractDebugTest extends TestCase implements  IEvaluation
 		ASTEvaluationEngine engine = new ASTEvaluationEngine(getProjectContext(), (IJavaDebugTarget) thread.getDebugTarget());
 		try {
 			engine.evaluate(snippet, frame, listener, DebugEvent.EVALUATION_IMPLICIT, false);
-			long timeout = System.currentTimeMillis()+5000;
+			long timeout = System.currentTimeMillis() + 5000;
 			while(listener.getResult() == null && System.currentTimeMillis() < timeout) {
 				Thread.sleep(100);
 			}
 			IEvaluationResult result = listener.getResult();
+			assertNotNull("The evaluation should have result: ", result);
 			assertNull("The evaluation should not have exception : " + result.getException(), result.getException());
 
 			String firstError = result.hasErrors() ? result.getErrorMessages()[0] : "";

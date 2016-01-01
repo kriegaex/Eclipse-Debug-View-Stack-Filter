@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2004, 2011 IBM Corporation and others.
+ * Copyright (c) 2004, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -103,6 +103,7 @@ public class JavaOwnedMonitor extends PlatformObject implements IDebugElement, I
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.IDebugElement#getModelIdentifier()
 	 */
+	@Override
 	public String getModelIdentifier() {
 		return fMonitor.getModelIdentifier();
 	}
@@ -110,6 +111,7 @@ public class JavaOwnedMonitor extends PlatformObject implements IDebugElement, I
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.IDebugElement#getDebugTarget()
 	 */
+	@Override
 	public IDebugTarget getDebugTarget() {
 		return fMonitor.getDebugTarget();
 	}
@@ -117,6 +119,7 @@ public class JavaOwnedMonitor extends PlatformObject implements IDebugElement, I
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.IDebugElement#getLaunch()
 	 */
+	@Override
 	public ILaunch getLaunch() {
 		return fMonitor.getLaunch();
 	}
@@ -125,13 +128,14 @@ public class JavaOwnedMonitor extends PlatformObject implements IDebugElement, I
 	 * @see org.eclipse.core.runtime.PlatformObject#getAdapter(java.lang.Class)
 	 */
 	@Override
-	public Object getAdapter(Class adapter) {
+	@SuppressWarnings("unchecked")
+	public <T> T getAdapter(Class<T> adapter) {
 		if(adapter == IDebugTarget.class) {
-			return getDebugTarget();
+			return (T) getDebugTarget();
 		}
 		//CONTEXTLAUNCHING
 		if(adapter.equals(ILaunchConfiguration.class)) {
-			return getLaunch().getLaunchConfiguration();
+			return (T) getLaunch().getLaunchConfiguration();
 		}
 		return super.getAdapter(adapter);
 	}
@@ -155,6 +159,7 @@ public class JavaOwnedMonitor extends PlatformObject implements IDebugElement, I
 	/**
 	 * @see org.eclipse.debug.core.model.ITerminate#canTerminate()
 	 */
+	@Override
 	public boolean canTerminate() {
 		return getDebugTarget().canTerminate();
 	}
@@ -162,6 +167,7 @@ public class JavaOwnedMonitor extends PlatformObject implements IDebugElement, I
 	/**
 	 * @see org.eclipse.debug.core.model.ITerminate#isTerminated()
 	 */
+	@Override
 	public boolean isTerminated() {
 		return getDebugTarget().isTerminated();
 	}
@@ -169,6 +175,7 @@ public class JavaOwnedMonitor extends PlatformObject implements IDebugElement, I
 	/**
 	 * @see org.eclipse.debug.core.model.ITerminate#terminate()
 	 */
+	@Override
 	public void terminate() throws DebugException {
 		getDebugTarget().terminate();
 	}
@@ -176,6 +183,7 @@ public class JavaOwnedMonitor extends PlatformObject implements IDebugElement, I
 	/**
 	 * @see org.eclipse.debug.core.model.ISuspendResume#canResume()
 	 */
+	@Override
 	public boolean canResume() {
 		IThread thread = getParentThread();
 		if(thread != null) {
@@ -187,6 +195,7 @@ public class JavaOwnedMonitor extends PlatformObject implements IDebugElement, I
 	/**
 	 * @see org.eclipse.debug.core.model.ISuspendResume#canSuspend()
 	 */
+	@Override
 	public boolean canSuspend() {
 		IThread thread = getParentThread();
 		if(thread != null) {
@@ -198,6 +207,7 @@ public class JavaOwnedMonitor extends PlatformObject implements IDebugElement, I
 	/**
 	 * @see org.eclipse.debug.core.model.ISuspendResume#isSuspended()
 	 */
+	@Override
 	public boolean isSuspended() {
 		IThread thread = getParentThread();
 		if(thread != null) {
@@ -209,6 +219,7 @@ public class JavaOwnedMonitor extends PlatformObject implements IDebugElement, I
 	/**
 	 * @see org.eclipse.debug.core.model.ISuspendResume#resume()
 	 */
+	@Override
 	public void resume() throws DebugException {
 		IThread thread = getParentThread();
 		if(thread != null) {
@@ -219,6 +230,7 @@ public class JavaOwnedMonitor extends PlatformObject implements IDebugElement, I
 	/**
 	 * @see org.eclipse.debug.core.model.ISuspendResume#suspend()
 	 */
+	@Override
 	public void suspend() throws DebugException {
 		IThread thread = getParentThread();
 		if(thread != null) {

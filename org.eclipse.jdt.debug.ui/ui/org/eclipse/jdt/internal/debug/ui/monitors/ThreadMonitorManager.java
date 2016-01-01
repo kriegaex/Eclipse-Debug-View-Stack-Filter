@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2004, 2012 IBM Corporation and others.
+ * Copyright (c) 2004, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -74,6 +74,7 @@ public class ThreadMonitorManager implements IDebugEventSetListener, IPropertyCh
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.IDebugEventSetListener#handleDebugEvents(org.eclipse.debug.core.DebugEvent[])
 	 */
+	@Override
 	public void handleDebugEvents(DebugEvent[] events) {
 		for (int i= 0; i < events.length; i++) {
 			DebugEvent debugEvent= events[i];
@@ -82,7 +83,7 @@ public class ThreadMonitorManager implements IDebugEventSetListener, IPropertyCh
 			IJavaThread javaThread = null;
 			if (eventSource instanceof IAdaptable) {
 				IAdaptable adaptable = (IAdaptable)eventSource;
-				javaThread = (IJavaThread) adaptable.getAdapter(IJavaThread.class);
+				javaThread = adaptable.getAdapter(IJavaThread.class);
 				if (javaThread != null) {
 					switch (eventKind) {
 						case DebugEvent.SUSPEND:
@@ -98,7 +99,7 @@ public class ThreadMonitorManager implements IDebugEventSetListener, IPropertyCh
 							break;
 					}
 				} else {
-					IJavaDebugTarget target = (IJavaDebugTarget) adaptable.getAdapter(IJavaDebugTarget.class);
+					IJavaDebugTarget target = adaptable.getAdapter(IJavaDebugTarget.class);
 					if (target != null) {
 						switch (eventKind) {
 							case DebugEvent.SUSPEND:
@@ -199,7 +200,7 @@ public class ThreadMonitorManager implements IDebugEventSetListener, IPropertyCh
 	 * Returns the monitor the given thread is waiting for.
 	 */
 	public JavaContendedMonitor getContendedMonitor(IThread thread) {
-        IJavaThread javaThread = (IJavaThread) thread.getAdapter(IJavaThread.class);
+        IJavaThread javaThread = thread.getAdapter(IJavaThread.class);
 		if (javaThread == null || !fIsEnabled || !((IJavaDebugTarget)javaThread.getDebugTarget()).supportsMonitorInformation()) {
 			return null;
 		}
@@ -210,7 +211,7 @@ public class ThreadMonitorManager implements IDebugEventSetListener, IPropertyCh
 	 * Returns the monitors the given thread owns.
 	 */
 	public JavaOwnedMonitor[] getOwnedMonitors(IThread thread) {
-        IJavaThread javaThread = (IJavaThread) thread.getAdapter(IJavaThread.class);
+        IJavaThread javaThread = thread.getAdapter(IJavaThread.class);
     	if (javaThread == null || !fIsEnabled || !((IJavaDebugTarget)javaThread.getDebugTarget()).supportsMonitorInformation()) {
     		return new JavaOwnedMonitor[0];
     	}
@@ -233,6 +234,7 @@ public class ThreadMonitorManager implements IDebugEventSetListener, IPropertyCh
 	}
 
 	class DetectDeadlock implements Runnable {
+		@Override
 		public void run() {
 			JavaMonitorThread[] threads= getJavaMonitorThreads();
 			JavaMonitor[] monitors= getJavaMonitors();
@@ -283,6 +285,7 @@ public class ThreadMonitorManager implements IDebugEventSetListener, IPropertyCh
 	/* (non-Javadoc)
 	 * @see org.eclipse.jface.util.IPropertyChangeListener#propertyChange(org.eclipse.jface.util.PropertyChangeEvent)
 	 */
+	@Override
 	public void propertyChange(PropertyChangeEvent event) {
 		if (event.getProperty().equals(IJavaDebugUIConstants.PREF_SHOW_MONITOR_THREAD_INFO)) {
 			fIsEnabled= JDIDebugUIPreferenceInitializer.getBoolean(event);
@@ -299,7 +302,7 @@ public class ThreadMonitorManager implements IDebugEventSetListener, IPropertyCh
 	 * in a deadlock, <code>false</code> otherwise.
 	 */
 	public boolean isInDeadlock(IThread thread) {
-        IJavaThread javaThread = (IJavaThread) thread.getAdapter(IJavaThread.class);
+        IJavaThread javaThread = thread.getAdapter(IJavaThread.class);
 		if (!fIsEnabled || !((IJavaDebugTarget)javaThread.getDebugTarget()).supportsMonitorInformation()) {
 			return false;
 		}

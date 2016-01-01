@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2005 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -62,6 +62,7 @@ public class ActionDelegateHelper implements IPartListener, IWindowListener {
 	/**
 	 * @see IPartListener#partActivated(IWorkbenchPart)
 	 */
+	@Override
 	public void partActivated(IWorkbenchPart part) {
 		checkToSetTextEditor(part);
 	}
@@ -69,12 +70,14 @@ public class ActionDelegateHelper implements IPartListener, IWindowListener {
 	/**
 	 * @see IPartListener#partBroughtToTop(IWorkbenchPart)
 	 */
+	@Override
 	public void partBroughtToTop(IWorkbenchPart part) {
 	}
 
 	/**
 	 * @see IPartListener#partClosed(IWorkbenchPart)
 	 */
+	@Override
 	public void partClosed(IWorkbenchPart part) {
 		if (part == getTextEditor()) {
 			cleanup();
@@ -84,12 +87,14 @@ public class ActionDelegateHelper implements IPartListener, IWindowListener {
 	/**
 	 * @see IPartListener#partDeactivated(IWorkbenchPart)
 	 */
+	@Override
 	public void partDeactivated(IWorkbenchPart part) {		
 	}
 
 	/**
 	 * @see IPartListener#partOpened(IWorkbenchPart)
 	 */
+	@Override
 	public void partOpened(IWorkbenchPart part) {
 	}
 
@@ -123,7 +128,7 @@ public class ActionDelegateHelper implements IPartListener, IWindowListener {
 		IEditorInput editorInput= editor.getEditorInput();
 		IMember m= null;
 		try {
-			IClassFile classFile= (IClassFile)editorInput.getAdapter(IClassFile.class);
+			IClassFile classFile = editorInput.getAdapter(IClassFile.class);
 			if (classFile != null) {
 				IJavaElement e= classFile.getElementAt(currentSelection.getOffset());
 				if (e instanceof IMember) {
@@ -170,6 +175,7 @@ public class ActionDelegateHelper implements IPartListener, IWindowListener {
 	/**
 	 * @see IWindowListener#windowActivated(IWorkbenchWindow)
 	 */
+	@Override
 	public void windowActivated(IWorkbenchWindow window) {
 		if (fCurrentWindow != null) {
 			fCurrentWindow.getPartService().removePartListener(this);
@@ -186,6 +192,7 @@ public class ActionDelegateHelper implements IPartListener, IWindowListener {
 	/**
 	 * @see IWindowListener#windowClosed(IWorkbenchWindow)
 	 */
+	@Override
 	public void windowClosed(IWorkbenchWindow window) {
 		if (fCurrentWindow == window) {
 			fCurrentWindow= null;
@@ -196,12 +203,14 @@ public class ActionDelegateHelper implements IPartListener, IWindowListener {
 	/**
 	 * @see IWindowListener#windowDeactivated(IWorkbenchWindow)
 	 */
+	@Override
 	public void windowDeactivated(IWorkbenchWindow window) {
 	}
 
 	/**
 	 * @see IWindowListener#windowOpened(IWorkbenchWindow)
 	 */
+	@Override
 	public void windowOpened(IWorkbenchWindow window) {
 	}
 	

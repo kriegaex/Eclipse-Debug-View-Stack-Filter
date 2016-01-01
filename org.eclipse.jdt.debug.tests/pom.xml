@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Copyright (c) 2012, 2014 Eclipse Foundation and others.
+  Copyright (c) 2012, 2015 Eclipse Foundation and others.
   All rights reserved. This program and the accompanying materials
   are made available under the terms of the Eclipse Distribution License v1.0
   which accompanies this distribution, and is available at
@@ -14,13 +14,36 @@
   <parent>
     <artifactId>eclipse.jdt.debug</artifactId>
     <groupId>eclipse.jdt.debug</groupId>
-    <version>4.5.0-SNAPSHOT</version>
+    <version>4.6.0-SNAPSHOT</version>
   </parent>
   <groupId>org.eclipse.jdt</groupId>
   <artifactId>org.eclipse.jdt.debug.tests</artifactId>
-  <version>3.8.300-SNAPSHOT</version>
+  <version>3.9.0-SNAPSHOT</version>
   <packaging>eclipse-test-plugin</packaging>
   <properties>
     <code.ignoredWarnings>${tests.ignoredWarnings}</code.ignoredWarnings>
+    <testSuite>${project.artifactId}</testSuite>
+    <testClass>org.eclipse.jdt.debug.tests.AutomatedSuite</testClass>
   </properties>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.eclipse.tycho</groupId>
+        <artifactId>tycho-surefire-plugin</artifactId>
+        <version>${tycho.version}</version>
+        <configuration>
+          <useUIHarness>true</useUIHarness>
+          <useUIThread>true</useUIThread>
+          <dependencies>
+            <dependency>
+              <!-- workaround for missing dependency in org.eclipse.e4.ui.services: https://bugs.eclipse.org/462862 -->
+              <type>eclipse-plugin</type>
+              <artifactId>org.eclipse.equinox.event</artifactId>
+              <version>0.0.0</version>
+            </dependency>
+          </dependencies>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

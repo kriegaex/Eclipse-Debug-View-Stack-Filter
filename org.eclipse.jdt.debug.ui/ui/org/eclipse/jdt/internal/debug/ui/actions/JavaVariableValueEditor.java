@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2004, 2009 IBM Corporation and others.
+ * Copyright (c) 2004, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -27,7 +27,8 @@ public class JavaVariableValueEditor implements IVariableValueEditor {
     /* (non-Javadoc)
      * @see org.eclipse.debug.ui.actions.IVariableValueEditor#editVariable(org.eclipse.debug.core.model.IVariable, org.eclipse.swt.widgets.Shell)
      */
-    public boolean editVariable(IVariable variable, Shell shell) {
+    @Override
+	public boolean editVariable(IVariable variable, Shell shell) {
         String signature= null;
         try {
             signature= getSignature(variable);
@@ -50,7 +51,8 @@ public class JavaVariableValueEditor implements IVariableValueEditor {
     /* (non-Javadoc)
      * @see org.eclipse.debug.ui.actions.IVariableValueEditor#saveVariable(org.eclipse.debug.core.model.IVariable, java.lang.String, org.eclipse.swt.widgets.Shell)
      */
-    public boolean saveVariable(IVariable variable, String expression, Shell shell) {
+    @Override
+	public boolean saveVariable(IVariable variable, String expression, Shell shell) {
         // set the value of chars directly if expression is a single character (not an expression to evaluate)
     	if (expression.length() == 1 && variable instanceof IJavaVariable){
     		IJavaVariable javaVariable = (IJavaVariable)variable;
@@ -71,7 +73,7 @@ public class JavaVariableValueEditor implements IVariableValueEditor {
     
     public static String getSignature(IVariable variable) throws DebugException {
         String signature= null;
-        IJavaVariable javaVariable = (IJavaVariable) variable.getAdapter(IJavaVariable.class);
+		IJavaVariable javaVariable = variable.getAdapter(IJavaVariable.class);
         if (javaVariable != null) {
                 signature = javaVariable.getSignature();
         }

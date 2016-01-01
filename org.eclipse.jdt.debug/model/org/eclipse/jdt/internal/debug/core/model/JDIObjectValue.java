@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2014 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -8,6 +8,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *     Jesper S. Møller - bug 422029: [1.8] Enable debug evaluation support for default methods
+ *     Jesper Steen Møller - bug 426903: [1.8] Cannot evaluate super call to default method
  *******************************************************************************/
 package org.eclipse.jdt.internal.debug.core.model;
 
@@ -17,6 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.eclipse.debug.core.DebugException;
+import org.eclipse.jdi.internal.InterfaceTypeImpl;
 import org.eclipse.jdt.debug.core.IJavaFieldVariable;
 import org.eclipse.jdt.debug.core.IJavaObject;
 import org.eclipse.jdt.debug.core.IJavaThread;
@@ -61,6 +63,7 @@ public class JDIObjectValue extends JDIValue implements IJavaObject {
 	 * java.lang.String, org.eclipse.jdt.debug.core.IJavaValue[],
 	 * org.eclipse.jdt.debug.core.IJavaThread, boolean)
 	 */
+	@Override
 	public IJavaValue sendMessage(String selector, String signature,
 			IJavaValue[] args, IJavaThread thread, boolean superSend)
 			throws DebugException {
@@ -106,6 +109,7 @@ public class JDIObjectValue extends JDIValue implements IJavaObject {
 	 * java.lang.String, org.eclipse.jdt.debug.core.IJavaValue[],
 	 * org.eclipse.jdt.debug.core.IJavaThread, java.lang.String)
 	 */
+	@Override
 	public IJavaValue sendMessage(String selector, String signature,
 			IJavaValue[] args, IJavaThread thread, String typeSignature)
 			throws DebugException {
@@ -123,7 +127,14 @@ public class JDIObjectValue extends JDIValue implements IJavaObject {
 		Method method = null;
 		ReferenceType refType = getUnderlyingReferenceType();
 		try {
-			while (typeSignature != null && refType != null	&& !refType.signature().equals(typeSignature)) {
+			found: while (typeSignature != null && refType != null	&& !refType.signature().equals(typeSignature)) {
+				// Didin't match, could be a method from inheirited interface
+				for (InterfaceType iface : ((ClassType) refType).allInterfaces()) {
+					if (iface.signature().equals(typeSignature)) {
+						refType = iface;
+						break found;
+					}
+				}
 				// lookup correct type through the hierarchy
 				refType = ((ClassType) refType).superclass();
 				if (refType == null) {
@@ -167,6 +178,13 @@ public class JDIObjectValue extends JDIValue implements IJavaObject {
 				}
 			}
 		}
+		if (refType instanceof InterfaceTypeImpl) {
+			Method m = ((InterfaceTypeImpl) refType).concreteMethodByName(selector,
+					signature);
+			if (m != null) {
+				return m;
+			}
+		}
 		if (refType instanceof ArrayType) {
 			// the jdi spec specifies that all methods on methods return an
 			// empty list for array types.
@@ -197,6 +215,7 @@ public class JDIObjectValue extends JDIValue implements IJavaObject {
 	 * @see org.eclipse.jdt.debug.core.IJavaObject#getField(java.lang.String,
 	 * boolean)
 	 */
+	@Override
 	public IJavaFieldVariable getField(String name, boolean superField)
 			throws DebugException {
 		ReferenceType ref = getUnderlyingReferenceType();
@@ -242,6 +261,7 @@ public class JDIObjectValue extends JDIValue implements IJavaObject {
 	 * @see org.eclipse.jdt.debug.core.IJavaObject#getField(java.lang.String,
 	 * java.lang.String)
 	 */
+	@Override
 	public IJavaFieldVariable getField(String name,
 			String declaringTypeSignature) throws DebugException {
 		ReferenceType ref = getUnderlyingReferenceType();
@@ -381,6 +401,7 @@ public class JDIObjectValue extends JDIValue implements IJavaObject {
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaObject#getWaitingThreads()
 	 */
+	@Override
 	public IJavaThread[] getWaitingThreads() throws DebugException {
 		List<JDIThread> waiting = new ArrayList<JDIThread>();
 		try {
@@ -407,6 +428,7 @@ public class JDIObjectValue extends JDIValue implements IJavaObject {
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaObject#getOwningThread()
 	 */
+	@Override
 	public IJavaThread getOwningThread() throws DebugException {
 		IJavaThread owningThread = null;
 		try {
@@ -452,6 +474,7 @@ public class JDIObjectValue extends JDIValue implements IJavaObject {
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaObject#getUniqueId()
 	 */
+	@Override
 	public long getUniqueId() throws DebugException {
 		try {
 			ObjectReference underlyingObject = getUnderlyingObject();
@@ -475,6 +498,7 @@ public class JDIObjectValue extends JDIValue implements IJavaObject {
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaObject#getReferringObjects(long)
 	 */
+	@Override
 	public IJavaObject[] getReferringObjects(long max) throws DebugException {
 		// The cached references should be reloaded if the suspend count has
 		// changed, or the maximum entries has changed
@@ -532,6 +556,7 @@ public class JDIObjectValue extends JDIValue implements IJavaObject {
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaObject#disableCollection()
 	 */
+	@Override
 	public void disableCollection() throws DebugException {
 		if (getJavaDebugTarget().supportsSelectiveGarbageCollection()) {
 			try {
@@ -552,6 +577,7 @@ public class JDIObjectValue extends JDIValue implements IJavaObject {
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaObject#enableCollection()
 	 */
+	@Override
 	public void enableCollection() throws DebugException {
 		if (getJavaDebugTarget().supportsSelectiveGarbageCollection()) {
 			try {

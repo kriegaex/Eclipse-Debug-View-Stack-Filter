@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2012 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -7,6 +7,7 @@
  * 
  * Contributors:
  *     IBM Corporation - initial API and implementation
+ *     Jesper Steen Møller <jesper@selskabet.org> - Bug 430839
  *******************************************************************************/
 package org.eclipse.jdi.internal;
 
@@ -106,19 +107,10 @@ public class ClassTypeImpl extends ReferenceTypeImpl implements ClassType {
 	}
 
 	/**
-	 * @return Returns Jdwp version of given options.
-	 */
-	private int optionsToJdwpOptions(int options) {
-		int jdwpOptions = 0;
-		if ((options & INVOKE_SINGLE_THREADED) != 0)
-			jdwpOptions |= MethodImpl.INVOKE_SINGLE_THREADED_JDWP;
-		return jdwpOptions;
-	}
-
-	/**
 	 * @return Returns a the single non-abstract Method visible from this class
 	 *         that has the given name and signature.
 	 */
+	@Override
 	public Method concreteMethodByName(String name, String signature) {
 		/*
 		 * Recursion is used to find the method: The methods of its own (own
@@ -147,84 +139,17 @@ public class ClassTypeImpl extends ReferenceTypeImpl implements ClassType {
 	/* (non-Javadoc)
 	 * @see com.sun.jdi.ClassType#invokeMethod(com.sun.jdi.ThreadReference, com.sun.jdi.Method, java.util.List, int)
 	 */
+	@Override
 	public Value invokeMethod(ThreadReference thread, Method method, List<? extends Value> arguments, int options) throws InvalidTypeException,
 			ClassNotLoadedException, IncompatibleThreadStateException,
 			InvocationException {
-		checkVM(thread);
-		checkVM(method);
-		ThreadReferenceImpl threadImpl = (ThreadReferenceImpl) thread;
-		MethodImpl methodImpl = (MethodImpl) method;
-
-		// Perform some checks for IllegalArgumentException.
-		if (!visibleMethods().contains(method))
-			throw new IllegalArgumentException(
-					JDIMessages.ClassTypeImpl_Class_does_not_contain_given_method_1);
-		if (method.argumentTypeNames().size() != arguments.size())
-			throw new IllegalArgumentException(
-					JDIMessages.ClassTypeImpl_Number_of_arguments_doesn__t_match_2);
-		if (method.isConstructor() || method.isStaticInitializer())
-			throw new IllegalArgumentException(
-					JDIMessages.ClassTypeImpl_Method_is_constructor_or_intitializer_3);
-
-		// check the type and the VM of the arguments. Convert the values if
-		// needed
-		List<Value> checkedArguments = ValueImpl.checkValues(arguments, method.argumentTypes(), virtualMachineImpl());
-
-		initJdwpRequest();
-		try {
-			ByteArrayOutputStream outBytes = new ByteArrayOutputStream();
-			DataOutputStream outData = new DataOutputStream(outBytes);
-			write(this, outData);
-			threadImpl.write(this, outData);
-			methodImpl.write(this, outData);
-
-			writeInt(checkedArguments.size(), "size", outData); //$NON-NLS-1$
-			Iterator<Value> iter = checkedArguments.iterator();
-			while (iter.hasNext()) {
-				Value elt = iter.next();
-				if (elt instanceof ValueImpl) {
-					((ValueImpl)elt).writeWithTag(this, outData);
-				} else {
-					ValueImpl.writeNullWithTag(this, outData);
-				}
-			}
-
-			writeInt(optionsToJdwpOptions(options),
-					"options", MethodImpl.getInvokeOptions(), outData); //$NON-NLS-1$
-
-			JdwpReplyPacket replyPacket = requestVM(
-					JdwpCommandPacket.CT_INVOKE_METHOD, outBytes);
-			switch (replyPacket.errorCode()) {
-			case JdwpReplyPacket.INVALID_METHODID:
-				throw new IllegalArgumentException();
-			case JdwpReplyPacket.TYPE_MISMATCH:
-				throw new InvalidTypeException();
-			case JdwpReplyPacket.INVALID_CLASS:
-				throw new ClassNotLoadedException(name());
-			case JdwpReplyPacket.INVALID_THREAD:
-				throw new IncompatibleThreadStateException();
-			case JdwpReplyPacket.THREAD_NOT_SUSPENDED:
-				throw new IncompatibleThreadStateException();
-			}
-			defaultReplyErrorHandler(replyPacket.errorCode());
-			DataInputStream replyData = replyPacket.dataInStream();
-			ValueImpl value = ValueImpl.readWithTag(this, replyData);
-			ObjectReferenceImpl exception = ObjectReferenceImpl
-					.readObjectRefWithTag(this, replyData);
-			if (exception != null)
-				throw new InvocationException(exception);
-			return value;
-		} catch (IOException e) {
-			defaultIOExceptionHandler(e);
-			return null;
-		} finally {
-			handledJdwpRequest();
-		}
+		return invokeMethod(thread, method, arguments, options, JdwpCommandPacket.CT_INVOKE_METHOD);
 	}
 
 	/* (non-Javadoc)
 	 * @see com.sun.jdi.ClassType#newInstance(com.sun.jdi.ThreadReference, com.sun.jdi.Method, java.util.List, int)
 	 */
+	@Override
 	public ObjectReference newInstance(ThreadReference thread, Method method, List<? extends Value> arguments, int options) throws InvalidTypeException,
 			ClassNotLoadedException, IncompatibleThreadStateException,
 			InvocationException {
@@ -303,6 +228,7 @@ public class ClassTypeImpl extends ReferenceTypeImpl implements ClassType {
 	/**
 	 * Assigns a value to a static field. .
 	 */
+	@Override
 	public void setValue(Field field, Value value) throws InvalidTypeException,
 			ClassNotLoadedException {
 		// Note that this information should not be cached.
@@ -345,6 +271,7 @@ public class ClassTypeImpl extends ReferenceTypeImpl implements ClassType {
 	/* (non-Javadoc)
 	 * @see com.sun.jdi.ClassType#subclasses()
 	 */
+	@Override
 	public List<ClassType> subclasses() {
 		// Note that this information should not be cached.
 		List<ClassType> subclasses = new ArrayList<ClassType>();
@@ -369,6 +296,7 @@ public class ClassTypeImpl extends ReferenceTypeImpl implements ClassType {
 	/* (non-Javadoc)
 	 * @see com.sun.jdi.ClassType#superclass()
 	 */
+	@Override
 	public ClassType superclass() {
 		if (fSuperclass != null)
 			return fSuperclass;
@@ -443,6 +371,7 @@ public class ClassTypeImpl extends ReferenceTypeImpl implements ClassType {
 		return mirror;
 	}
 
+	@Override
 	public boolean isEnum() {
 		if (virtualMachineImpl().isJdwpVersionGreaterOrEqual(1, 5)) {
 			// there is no modifier for this ... :(

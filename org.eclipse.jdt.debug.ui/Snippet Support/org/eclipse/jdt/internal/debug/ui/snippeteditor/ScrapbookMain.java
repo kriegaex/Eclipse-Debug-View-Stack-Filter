@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2012 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -21,14 +21,18 @@ import java.security.CodeSource;
 import java.security.ProtectionDomain;
 
 /**
- * Support class for launching a snippet evaluation
+ * Support class for launching a snippet evaluation.
+ * <p>
+ * CAUTION: This class gets compiled with target=jsr14, see scripts/buildExtraJAR.xml. Don't use URLClassLoader#close() or other post-1.4 APIs!
  */
 public class ScrapbookMain {
 	
 	public static void main(String[] args) {
 
 		URL[] urls= getClasspath(args);
-		if (urls == null) return;
+		if (urls == null) {
+			return;
+		}
 		
 		while (true) {
 			try {
@@ -47,13 +51,18 @@ public class ScrapbookMain {
 	}
 	
 	static void evalLoop(URL[] urls) throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-
+		@SuppressWarnings("resource")
 		ClassLoader cl= new URLClassLoader(urls, null);
 		Class<?> clazz= cl.loadClass("org.eclipse.jdt.internal.debug.ui.snippeteditor.ScrapbookMain1"); //$NON-NLS-1$
 		Method method= clazz.getDeclaredMethod("eval", new Class[] {Class.class}); //$NON-NLS-1$
 		method.invoke(null, new Object[] {ScrapbookMain.class});
 	}
 	
+	/**
+	 * The magic "no-op" method, where {@link org.eclipse.jdt.internal.debug.ui.snippeteditor.ScrapbookLauncher#createMagicBreakpoint(String)} sets a
+	 * breakpoint.
+	 * <p>
+	 */
 	public static void nop() {
 		try {
 			Thread.sleep(100);
@@ -77,9 +86,13 @@ public class ScrapbookMain {
 		}
 
 		ProtectionDomain pd = ScrapbookMain.class.getProtectionDomain();
-		if (pd == null) return null;
+		if (pd == null) {
+			return null;
+		}
 		CodeSource cs = pd.getCodeSource();
-		if (cs == null) return null;
+		if (cs == null) {
+			return null;
+		}
 		urls[0] = cs.getLocation();
 
 		return urls;

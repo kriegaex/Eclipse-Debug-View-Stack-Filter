@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright (c) 2000, 2014 IBM Corporation and others.
+ *  Copyright (c) 2000, 2015 IBM Corporation and others.
  *  All rights reserved. This program and the accompanying materials
  *  are made available under the terms of the Eclipse Public License v1.0
  *  which accompanies this distribution, and is available at
@@ -16,10 +16,6 @@
 package org.eclipse.jdt.debug.tests;
 
 import java.util.Enumeration;
-
-import junit.framework.Test;
-import junit.framework.TestResult;
-import junit.framework.TestSuite;
 
 import org.eclipse.jdt.debug.tests.eval.ArrayAllocationTests;
 import org.eclipse.jdt.debug.tests.eval.ArrayAssignmentTests;
@@ -83,7 +79,9 @@ import org.eclipse.jdt.debug.tests.eval.StaticFieldValueTests;
 import org.eclipse.jdt.debug.tests.eval.StaticFieldValueTests2;
 import org.eclipse.jdt.debug.tests.eval.StringPlusAssignmentOpTests;
 import org.eclipse.jdt.debug.tests.eval.StringPlusOpTests;
+import org.eclipse.jdt.debug.tests.eval.TestsAnonymousClassVariable;
 import org.eclipse.jdt.debug.tests.eval.TestsArrays;
+import org.eclipse.jdt.debug.tests.eval.TestsBreakpointConditions;
 import org.eclipse.jdt.debug.tests.eval.TestsNestedTypes1;
 import org.eclipse.jdt.debug.tests.eval.TestsNestedTypes2;
 import org.eclipse.jdt.debug.tests.eval.TestsNumberLiteral;
@@ -105,6 +103,10 @@ import org.eclipse.jdt.debug.tests.eval.TypeHierarchy_68_3;
 import org.eclipse.jdt.debug.tests.eval.VariableDeclarationTests;
 import org.eclipse.jdt.debug.tests.eval.XfixOperatorsTests;
 import org.eclipse.swt.widgets.Display;
+
+import junit.framework.Test;
+import junit.framework.TestResult;
+import junit.framework.TestSuite;
 
 /**
  * Test all areas of the UI.
@@ -228,7 +230,9 @@ public class EvalTestSuite extends TestSuite {
 		addTest(new TestSuite(VariableDeclarationTests.class));
 		addTest(new TestSuite(LoopTests.class));
 		addTest(new TestSuite(LabelTests.class));
+		addTest(new TestSuite(TestsAnonymousClassVariable.class));
 		
+		addTest(new TestSuite(TestsBreakpointConditions.class));
 
 	}
 	
@@ -244,10 +248,12 @@ public class EvalTestSuite extends TestSuite {
 		Thread thread = null;
 		try {
 			Runnable r = new Runnable() {
+				@Override
 				public void run() {
 					for (Enumeration<Test> e= tests(); e.hasMoreElements(); ) {
-				  		if (result.shouldStop() )
-				  			break;
+				  		if (result.shouldStop() ) {
+							break;
+						}
 						runTest(e.nextElement(), result);
 					}					
 					fTesting = false;
@@ -262,8 +268,9 @@ public class EvalTestSuite extends TestSuite {
 				
 		while (fTesting) {
 			try {
-				if (!display.readAndDispatch())
+				if (!display.readAndDispatch()) {
 					display.sleep();
+				}
 			} catch (Throwable e) {
 				e.printStackTrace();
 			}			

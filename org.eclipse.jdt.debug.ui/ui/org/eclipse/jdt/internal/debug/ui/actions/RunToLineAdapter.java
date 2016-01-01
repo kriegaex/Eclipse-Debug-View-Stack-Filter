@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright (c) 2000, 2012 IBM Corporation and others.
+ *  Copyright (c) 2000, 2015 IBM Corporation and others.
  *  All rights reserved. This program and the accompanying materials
  *  are made available under the terms of the Eclipse Public License v1.0
  *  which accompanies this distribution, and is available at
@@ -50,6 +50,7 @@ public class RunToLineAdapter implements IRunToLineTarget {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.ui.actions.IRunToLineTarget#runToLine(org.eclipse.ui.IWorkbenchPart, org.eclipse.jface.viewers.ISelection, org.eclipse.debug.core.model.ISuspendResume)
 	 */
+	@Override
 	public void runToLine(IWorkbenchPart part, ISelection selection, ISuspendResume target) throws CoreException {
 		ITextEditor textEditor = getTextEditor(part);
 		String errorMessage = null;
@@ -69,6 +70,7 @@ public class RunToLineAdapter implements IRunToLineTarget {
 					final int[] lineNumber = new int[1];
 					final ITextSelection textSelection = (ITextSelection) selection;
 					Runnable r = new Runnable() {
+						@Override
 						public void run() {
 							lineNumber[0] = textSelection.getStartLine() + 1;
 							ASTParser parser = ASTParser.newParser(AST.JLS4);
@@ -88,7 +90,7 @@ public class RunToLineAdapter implements IRunToLineTarget {
 						breakpoint= JDIDebugModel.createLineBreakpoint(ResourcesPlugin.getWorkspace().getRoot(), typeName[0], lineNumber[0], -1, -1, 1, false, attributes);
 						errorMessage = "Unable to locate debug target";  //$NON-NLS-1$
 						if (target instanceof IAdaptable) {
-							IDebugTarget debugTarget = (IDebugTarget) ((IAdaptable)target).getAdapter(IDebugTarget.class);
+							IDebugTarget debugTarget = ((IAdaptable) target).getAdapter(IDebugTarget.class);
 							if (debugTarget != null) {
 	                            RunToLineHandler handler = new RunToLineHandler(debugTarget, target, breakpoint);
 	                            handler.run(new NullProgressMonitor());
@@ -114,10 +116,11 @@ public class RunToLineAdapter implements IRunToLineTarget {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.ui.actions.IRunToLineTarget#canRunToLine(org.eclipse.ui.IWorkbenchPart, org.eclipse.jface.viewers.ISelection, org.eclipse.debug.core.model.ISuspendResume)
 	 */
+	@Override
 	public boolean canRunToLine(IWorkbenchPart part, ISelection selection, ISuspendResume target) {
 	    if (target instanceof IDebugElement && target.canResume()) {
             IDebugElement element = (IDebugElement) target;
-            IJavaDebugTarget adapter = (IJavaDebugTarget) element.getDebugTarget().getAdapter(IJavaDebugTarget.class);
+            IJavaDebugTarget adapter = element.getDebugTarget().getAdapter(IJavaDebugTarget.class);
             return adapter != null;
         }
 		return false;
@@ -135,6 +138,6 @@ public class RunToLineAdapter implements IRunToLineTarget {
     	if (part instanceof ITextEditor) {
     		return (ITextEditor) part;
     	}
-    	return (ITextEditor) part.getAdapter(ITextEditor.class);
+    	return part.getAdapter(ITextEditor.class);
     }	
 }

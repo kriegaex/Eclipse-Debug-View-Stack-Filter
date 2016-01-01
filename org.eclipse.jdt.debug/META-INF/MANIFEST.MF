@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: %pluginName
 Bundle-SymbolicName: org.eclipse.jdt.debug; singleton:=true
-Bundle-Version: 3.8.200.qualifier
+Bundle-Version: 3.10.0.qualifier
 Bundle-ClassPath: jdi.jar,
  jdimodel.jar,
  tools.jar
@@ -35,9 +35,9 @@ Export-Package: com.sun.jdi;x-friends:="org.eclipse.jdt.debug.ui,org.eclipse.jdt
 Require-Bundle: org.eclipse.core.resources;bundle-version="[3.5.0,4.0.0)",
  org.eclipse.debug.core;bundle-version="[3.9.0,4.0.0)",
  org.eclipse.jdt.core;bundle-version="[3.8.0,4.0.0)",
- org.eclipse.core.runtime;bundle-version="[3.5.0,4.0.0)",
+ org.eclipse.core.runtime;bundle-version="[3.11.0,4.0.0)",
  org.eclipse.core.expressions;bundle-version="[3.4.0,4.0.0)"
 Bundle-ActivationPolicy: lazy
 Import-Package: com.ibm.icu.text
-Bundle-RequiredExecutionEnvironment: J2SE-1.5
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Eclipse-BundleShape: dir

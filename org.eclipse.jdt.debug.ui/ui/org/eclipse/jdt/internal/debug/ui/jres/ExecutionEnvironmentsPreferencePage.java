@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2005, 2012 IBM Corporation and others.
+ * Copyright (c) 2005, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -71,6 +71,7 @@ public class ExecutionEnvironmentsPreferencePage extends PreferencePage implemen
 		/* (non-Javadoc)
 		 * @see org.eclipse.jface.viewers.IStructuredContentProvider#getElements(java.lang.Object)
 		 */
+		@Override
 		public Object[] getElements(Object inputElement) {
 			return ((IExecutionEnvironment)inputElement).getCompatibleVMs();
 		}
@@ -78,12 +79,14 @@ public class ExecutionEnvironmentsPreferencePage extends PreferencePage implemen
 		/* (non-Javadoc)
 		 * @see org.eclipse.jface.viewers.IContentProvider#dispose()
 		 */
+		@Override
 		public void dispose() {
 		}
 
 		/* (non-Javadoc)
 		 * @see org.eclipse.jface.viewers.IContentProvider#inputChanged(org.eclipse.jface.viewers.Viewer, java.lang.Object, java.lang.Object)
 		 */
+		@Override
 		public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {
 		}
 		
@@ -99,9 +102,45 @@ public class ExecutionEnvironmentsPreferencePage extends PreferencePage implemen
 	/* (non-Javadoc)
 	 * @see org.eclipse.ui.IWorkbenchPreferencePage#init(org.eclipse.ui.IWorkbench)
 	 */
+	@Override
 	public void init(IWorkbench workbench) {
 	}
 	
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.eclipse.jface.dialogs.DialogPage(boolean)
+	 */
+	@Override
+	public void setVisible(boolean visible) {
+		if (visible) {
+			if (fProfilesViewer.getSelection() != null && !fProfilesViewer.getSelection().isEmpty()) {
+				handleEESelectionAndJREViewer(fProfilesViewer.getStructuredSelection());
+			}
+		}
+		super.setVisible(visible);
+
+	}
+
+	/*
+	 * Set the JREs for selected Execution Environment
+	 */
+	private void handleEESelectionAndJREViewer(IStructuredSelection selection) {
+		IExecutionEnvironment env = (IExecutionEnvironment) (selection).getFirstElement();
+		fJREsViewer.setInput(env);
+		String description = env.getDescription();
+		if (description == null) {
+			description = ""; //$NON-NLS-1$
+		}
+		fDescription.setText(description);
+		IVMInstall jre = (IVMInstall) fDefaults.get(env);
+		if (jre != null) {
+			fJREsViewer.setCheckedElements(new Object[] { jre });
+		} else {
+			fJREsViewer.setCheckedElements(new Object[0]);
+		}
+	}
+
 	/* (non-Javadoc)
 	 * @see org.eclipse.jface.preference.PreferencePage#createContents(org.eclipse.swt.widgets.Composite)
 	 */
@@ -170,6 +209,7 @@ public class ExecutionEnvironmentsPreferencePage extends PreferencePage implemen
 		fJREsViewer = new CheckboxTableViewer(table);
 		fJREsViewer.setContentProvider(new JREsContentProvider());
 		fJREsViewer.setLabelProvider(new JREsEnvironmentLabelProvider(new JREsEnvironmentLabelProvider.IExecutionEnvironmentProvider() {		
+			@Override
 			public IExecutionEnvironment getEnvironment() {
 				return (IExecutionEnvironment) fJREsViewer.getInput();
 			}
@@ -187,24 +227,14 @@ public class ExecutionEnvironmentsPreferencePage extends PreferencePage implemen
 		fDescription = text;
 					
 		fProfilesViewer.addSelectionChangedListener(new ISelectionChangedListener() {
+			@Override
 			public void selectionChanged(SelectionChangedEvent event) {
-				IExecutionEnvironment env = (IExecutionEnvironment) ((IStructuredSelection)event.getSelection()).getFirstElement();
-				fJREsViewer.setInput(env);
-				String description = env.getDescription();
-				if (description == null) {
-					description = ""; //$NON-NLS-1$
-				}
-				fDescription.setText(description);
-				IVMInstall jre = (IVMInstall) fDefaults.get(env);
-				if (jre != null) {
-					fJREsViewer.setCheckedElements(new Object[]{jre});
-				} else {
-					fJREsViewer.setCheckedElements(new Object[0]);
-				}
+				handleEESelectionAndJREViewer((IStructuredSelection) event.getSelection());
 			}
 		});
 		
 		fJREsViewer.addCheckStateListener(new ICheckStateListener() {
+			@Override
 			public void checkStateChanged(CheckStateChangedEvent event) {
 				if (event.getChecked()) {
 					Object element = event.getElement();

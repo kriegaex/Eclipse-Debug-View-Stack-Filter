@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2014 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -8,6 +8,7 @@
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *     Jesper Steen Moller - Bugs 341232, 427089
+ *     Chris West (Faux) - Bug 45507
  *******************************************************************************/
 package org.eclipse.jdt.internal.debug.eval.ast.engine;
 
@@ -29,6 +30,7 @@ import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.IDebugEventFilter;
 import org.eclipse.debug.core.model.ITerminate;
 import org.eclipse.debug.core.model.IThread;
+import org.eclipse.debug.core.model.IVariable;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.Signature;
 import org.eclipse.jdt.core.compiler.IProblem;
@@ -62,7 +64,7 @@ import com.sun.jdi.InvocationException;
 import com.sun.jdi.ObjectReference;
 
 public class ASTEvaluationEngine implements IAstEvaluationEngine {
-
+	public static final String ANONYMOUS_VAR_PREFIX = "val$"; //$NON-NLS-1$
 	private IJavaProject fProject;
 
 	private IJavaDebugTarget fDebugTarget;
@@ -86,6 +88,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 		 * org.eclipse.debug.core.IDebugEventFilter#filterDebugEvents(org.eclipse
 		 * .debug.core.DebugEvent[])
 		 */
+		@Override
 		public DebugEvent[] filterDebugEvents(DebugEvent[] events) {
 			if (events.length == 1) {
 				DebugEvent event = events[0];
@@ -124,6 +127,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 	 * org.eclipse.jdt.debug.core.IJavaStackFrame,
 	 * org.eclipse.jdt.debug.eval.IEvaluationListener, int, boolean)
 	 */
+	@Override
 	public void evaluate(String snippet, IJavaStackFrame frame,
 			IEvaluationListener listener, int evaluationDetail,
 			boolean hitBreakpoints) throws DebugException {
@@ -142,6 +146,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 	 * org.eclipse.jdt.debug.core.IJavaThread,
 	 * org.eclipse.jdt.debug.eval.IEvaluationListener, int, boolean)
 	 */
+	@Override
 	public void evaluate(String snippet, IJavaObject thisContext,
 			IJavaThread thread, IEvaluationListener listener,
 			int evaluationDetail, boolean hitBreakpoints) throws DebugException {
@@ -188,6 +193,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 	 * org.eclipse.jdt.debug.core.IJavaStackFrame,
 	 * org.eclipse.jdt.debug.eval.IEvaluationListener, int, boolean)
 	 */
+	@Override
 	public void evaluateExpression(ICompiledExpression expression,
 			IJavaStackFrame frame, IEvaluationListener listener,
 			int evaluationDetail, boolean hitBreakpoints) throws DebugException {
@@ -207,6 +213,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 	 * org.eclipse.jdt.debug.core.IJavaThread,
 	 * org.eclipse.jdt.debug.eval.IEvaluationListener, int, boolean)
 	 */
+	@Override
 	public void evaluateExpression(ICompiledExpression expression,
 			IJavaObject thisContext, IJavaThread thread,
 			IEvaluationListener listener, int evaluationDetail,
@@ -265,6 +272,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 	 * org.eclipse.jdt.debug.eval.IAstEvaluationEngine#getCompiledExpression
 	 * (java.lang.String, org.eclipse.jdt.debug.core.IJavaStackFrame)
 	 */
+	@Override
 	public ICompiledExpression getCompiledExpression(String snippet,
 			IJavaStackFrame frame) {
 		IJavaProject javaProject = getJavaProject();
@@ -274,32 +282,56 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 		CompilationUnit unit = null;
 		try {
 			IJavaVariable[] localsVar = context.getLocals();
+			IJavaObject thisClass = context.getThis();
+			IVariable[] innerClassFields; // For anonymous classes, getting variables from outer class
+			if (null != thisClass) {
+				innerClassFields = thisClass.getVariables();
+			} else {
+				innerClassFields = new IVariable[0];
+			}
 			int numLocalsVar = localsVar.length;
 			Set<String> names = new HashSet<String>();
 			// ******
 			// to hide problems with local variable declare as instance of Local
 			// Types
 			// and to remove locals with duplicate names
-			IJavaVariable[] locals = new IJavaVariable[numLocalsVar];
+			// IJavaVariable[] locals = new IJavaVariable[numLocalsVar];
+			IJavaVariable[] locals = new IJavaVariable[numLocalsVar + innerClassFields.length];
+			String[] localVariablesWithNull = new String[numLocalsVar + innerClassFields.length];
 			int numLocals = 0;
 			for (int i = 0; i < numLocalsVar; i++) {
 				if (!isLocalType(localsVar[i].getSignature())
 						&& !names.contains(localsVar[i].getName())) {
-					locals[numLocals++] = localsVar[i];
+					locals[numLocals] = localsVar[i];
 					names.add(localsVar[i].getName());
+					localVariablesWithNull[numLocals++] = localsVar[i].getName();
+				}
+			}
+			// Adding outer class variables to inner class scope
+			for (int i = 0; i < innerClassFields.length; i++) {
+				IVariable var = innerClassFields[i];
+				if (var instanceof IJavaVariable && var.getName().startsWith(ANONYMOUS_VAR_PREFIX)) {
+					String name = var.getName().substring(ANONYMOUS_VAR_PREFIX.length());
+					if (!names.contains(name)) {
+						locals[numLocals] = (IJavaVariable) var;
+						names.add(name);
+						localVariablesWithNull[numLocals++] = name;
+					}
 				}
 			}
 			// to solve and remove
 			// ******
 			String[] localTypesNames = new String[numLocals];
-			String[] localVariables = new String[numLocals];
 			for (int i = 0; i < numLocals; i++) {
-				localVariables[i] = locals[i].getName();
 				localTypesNames[i] = Signature.toString(
 						locals[i].getGenericSignature()).replace('/', '.');
 			}
+			// Copying local variables removing the nulls in the last
+			// String[] localVariables = Arrays.clonesub(localVariablesWithNull, names.size());
+			String[] localVariables = new String[names.size()];
+			System.arraycopy(localVariablesWithNull, 0, localVariables, 0, localVariables.length);
 			mapper = new EvaluationSourceGenerator(localTypesNames,
-					localVariables, snippet);
+					localVariables, snippet, getJavaProject());
 			// Compile in context of declaring type to get proper visibility of
 			// locals and members.
 			// Compiling in context of receiving type potentially provides
@@ -396,7 +428,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 			String[] localTypesNames = new String[] { typeName };
 			String[] localVariables = new String[] { ArrayRuntimeContext.ARRAY_THIS_VARIABLE };
 			mapper = new EvaluationSourceGenerator(localTypesNames,
-					localVariables, newSnippet);
+					localVariables, newSnippet, getJavaProject());
 
 			int index = typeName.indexOf('$');
 			// if the argument is an inner type, compile in context of outer
@@ -434,6 +466,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 	 * org.eclipse.jdt.debug.eval.IAstEvaluationEngine#getCompiledExpression
 	 * (java.lang.String, org.eclipse.jdt.debug.core.IJavaObject)
 	 */
+	@Override
 	public ICompiledExpression getCompiledExpression(String snippet,
 			IJavaObject thisContext) {
 		try {
@@ -458,6 +491,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 	 * org.eclipse.jdt.debug.eval.IAstEvaluationEngine#getCompiledExpression
 	 * (java.lang.String, org.eclipse.jdt.debug.core.IJavaType)
 	 */
+	@Override
 	public ICompiledExpression getCompiledExpression(String snippet,
 			IJavaReferenceType type) {
 		if (type instanceof IJavaArrayType) {
@@ -469,7 +503,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 		CompilationUnit unit = null;
 
 		mapper = new EvaluationSourceGenerator(new String[0], new String[0],
-				snippet);
+				snippet, getJavaProject());
 
 		try {
 			unit = parseCompilationUnit(
@@ -552,6 +586,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 	 * 
 	 * @see org.eclipse.jdt.debug.eval.IEvaluationEngine#getJavaProject()
 	 */
+	@Override
 	public IJavaProject getJavaProject() {
 		return fProject;
 	}
@@ -561,6 +596,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 	 * 
 	 * @see org.eclipse.jdt.debug.eval.IEvaluationEngine#getDebugTarget()
 	 */
+	@Override
 	public IJavaDebugTarget getDebugTarget() {
 		return fDebugTarget;
 	}
@@ -570,6 +606,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 	 * 
 	 * @see org.eclipse.jdt.debug.eval.IEvaluationEngine#dispose()
 	 */
+	@Override
 	public void dispose() {
 	}
 
@@ -598,6 +635,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 			fHitBreakpoints = hitBreakpoints;
 		}
 
+		@Override
 		public void run() {
 			if (JDIDebugOptions.DEBUG_AST_EVAL) {
 				StringBuffer buf = new StringBuffer();
@@ -656,6 +694,7 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 				CoreException fException;
 				boolean fTerminated = false;
 
+				@Override
 				public void run(IJavaThread jt, IProgressMonitor pm) {
 					EventFilter filter = new EventFilter();
 					try {
@@ -688,15 +727,18 @@ public class ASTEvaluationEngine implements IAstEvaluationEngine {
 					}
 				}
 
+				@Override
 				public void terminate() {
 					fTerminated = true;
 					interpreter.stop();
 				}
 
+				@Override
 				public boolean canTerminate() {
 					return true;
 				}
 
+				@Override
 				public boolean isTerminated() {
 					return false;
 				}

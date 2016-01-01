@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2005, 2014 IBM Corporation and others.
+ * Copyright (c) 2005, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -21,6 +21,8 @@ import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.debug.core.DebugException;
 import org.eclipse.debug.core.ILaunch;
+import org.eclipse.debug.core.model.IDebugElement;
+import org.eclipse.debug.core.model.IDebugTarget;
 import org.eclipse.debug.core.model.ISourceLocator;
 import org.eclipse.debug.core.sourcelookup.ISourceLookupDirector;
 import org.eclipse.jdt.core.IClassFile;
@@ -36,6 +38,7 @@ import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jdt.debug.core.IJavaDebugTarget;
 import org.eclipse.jdt.debug.core.IJavaReferenceType;
 import org.eclipse.jdt.debug.core.IJavaStackFrame;
 import org.eclipse.jdt.debug.core.IJavaThread;
@@ -50,6 +53,9 @@ import com.sun.jdi.VMDisconnectedException;
  * @since 3.2
  */
 public class JavaDebugUtils {
+
+	// The value must match org.eclipse.jdi.internal.VirtualMachineImpl#JAVA_STRATUM_NAME}
+	public static final String JAVA_STRATUM = "Java"; //$NON-NLS-1$
 
 	/**
 	 * Resolves and returns a type from the Java model that corresponds to the
@@ -125,7 +131,7 @@ public class JavaDebugUtils {
 		}
 		IJavaStackFrame frame = null;
 		if (object instanceof IAdaptable) {
-			frame = (IJavaStackFrame) ((IAdaptable) object)
+			frame = ((IAdaptable) object)
 					.getAdapter(IJavaStackFrame.class);
 		}
 		String typeName = null;
@@ -149,7 +155,8 @@ public class JavaDebugUtils {
 				}
 				if (object instanceof IJavaReferenceType) {
 					IJavaReferenceType refType = (IJavaReferenceType) object;
-					String[] sourcePaths = refType.getSourcePaths(null);
+					IJavaDebugTarget target = ((IJavaDebugTarget) refType.getDebugTarget());
+					String[] sourcePaths = refType.getSourcePaths(target.getDefaultStratum());
 					if (sourcePaths != null && sourcePaths.length > 0) {
 						return sourcePaths[0];
 					}
@@ -247,20 +254,24 @@ public class JavaDebugUtils {
 							@Override
 							public boolean visit(AnonymousClassDeclaration node) {
 								ITypeBinding binding = node.resolveBinding();
-								if (binding == null)
+								if (binding == null) {
 									return false;
-								if (qualifiedName.equals(binding.getBinaryName()))
+								}
+								if (qualifiedName.equals(binding.getBinaryName())) {
 									throw new ResultException((IType) binding.getJavaElement());
+								}
 								return true;
 							}
 
 							@Override
 							public boolean visit(TypeDeclaration node) {
 								ITypeBinding binding = node.resolveBinding();
-								if (binding == null)
+								if (binding == null) {
 									return false;
-								if (qualifiedName.equals(binding.getBinaryName()))
+								}
+								if (qualifiedName.equals(binding.getBinaryName())) {
 									throw new ResultException((IType) binding.getJavaElement());
+								}
 								return true;
 							}
 						});
@@ -292,7 +303,7 @@ public class JavaDebugUtils {
 	 * @throws CoreException if an exception occurs
 	 */
 	public static IJavaElement resolveJavaElement(Object object, ILaunch launch) throws CoreException {
-		Object sourceElement = resolveSourceElement(object, launch);
+		Object sourceElement = resolveSourceElement(object, JAVA_STRATUM, launch);
 		return getJavaElement(sourceElement);
 	}
 
@@ -311,7 +322,7 @@ public class JavaDebugUtils {
 		if (sourceElement instanceof IJavaElement) {
 			javaElement = (IJavaElement) sourceElement;
 		} else if (sourceElement instanceof IAdaptable) {
-			javaElement = (IJavaElement) ((IAdaptable) sourceElement).getAdapter(IJavaElement.class);
+			javaElement = ((IAdaptable) sourceElement).getAdapter(IJavaElement.class);
 		}
 		if (javaElement == null && sourceElement instanceof IResource) {
 			javaElement = JavaCore.create((IResource) sourceElement);
@@ -326,18 +337,54 @@ public class JavaDebugUtils {
 	}
 
 	/**
-	 * Returns the source element corresponding to the given object or
-	 * <code>null</code> if none, in the context of the given launch.
+	 * Returns the source element corresponding to the given object or <code>null</code> if none, in the context of the given launch.
 	 * 
 	 * @param launch
 	 *            provides source locator
 	 * @param object
 	 *            object to resolve source element for
 	 * @return corresponding source element or <code>null</code>
-	 * @throws CoreException if an exception occurs
+	 * @throws CoreException
+	 *             if an exception occurs
 	 */
 	public static Object resolveSourceElement(Object object, ILaunch launch) throws CoreException {
+		return resolveSourceElement(object, null, launch);
+	}
+
+	/**
+	 * Returns the source element corresponding to the given object in the given stratum or <code>null</code> if none, in the context of the given
+	 * launch.
+	 * 
+	 * @param launch
+	 *            provides source locator
+	 * @param object
+	 *            object to resolve source element for
+	 * @param stratum
+	 *            the stratum to use
+	 * @return corresponding source element or <code>null</code>
+	 * @throws CoreException
+	 *             if an exception occurs
+	 */
+	public static Object resolveSourceElement(Object object, String stratum, ILaunch launch) throws CoreException {
 		ISourceLocator sourceLocator = launch.getSourceLocator();
+		if (stratum != null && object instanceof IDebugElement) {
+			IDebugTarget debugTarget = ((IDebugElement) object).getDebugTarget();
+			if (debugTarget instanceof IJavaDebugTarget) {
+				IJavaDebugTarget javaDebugTarget = (IJavaDebugTarget) debugTarget;
+				String def = javaDebugTarget.getDefaultStratum();
+				try {
+					javaDebugTarget.setDefaultStratum(stratum);
+					return doSourceLookup(object, sourceLocator);
+				}
+				finally {
+					javaDebugTarget.setDefaultStratum(def);
+				}
+			}
+		}
+		return doSourceLookup(object, sourceLocator);
+	}
+
+	private static Object doSourceLookup(Object object, ISourceLocator sourceLocator) {
 		if (sourceLocator instanceof ISourceLookupDirector) {
 			ISourceLookupDirector director = (ISourceLookupDirector) sourceLocator;
 			return director.getSourceElement(object);
@@ -356,7 +403,7 @@ public class JavaDebugUtils {
 		ILaunch launch = frame.getLaunch();
 		if(launch != null) {
 			try {
-				Object sourceElement = resolveSourceElement(frame, launch);
+				Object sourceElement = resolveSourceElement(frame, JAVA_STRATUM, launch);
 				IJavaElement element = getJavaElement(sourceElement);
 				if(element != null) {
 					return element.getJavaProject();

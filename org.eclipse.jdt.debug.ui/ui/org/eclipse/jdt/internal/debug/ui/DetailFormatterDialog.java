@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2012 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -173,6 +173,7 @@ public class DetailFormatterDialog extends StatusDialog implements ITypeProvider
 		fTypeNameText.setEditable(fEditTypeName);
 		fTypeNameText.setText(fDetailFormatter.getTypeName());
 		fTypeNameText.addModifyListener(new ModifyListener() {
+			@Override
 			public void modifyText(ModifyEvent e) {
 				fTypeSearched= false;
 				checkValues();
@@ -182,13 +183,14 @@ public class DetailFormatterDialog extends StatusDialog implements ITypeProvider
 		Button typeSearchButton = SWTFactory.createPushButton(innerContainer, DebugUIMessages.DetailFormatterDialog_Select__type_4, null);
 		typeSearchButton.setEnabled(fEditTypeName);
 		typeSearchButton.addListener(SWT.Selection, new Listener() {
+			@Override
 			public void handleEvent(Event e) {
 				selectType();
 			}
 		});
 		
 		String labelText = null;
-        IBindingService bindingService = (IBindingService) workbench.getAdapter(IBindingService.class);
+		IBindingService bindingService = workbench.getAdapter(IBindingService.class);
 		String binding = bindingService.getBestActiveBindingFormattedFor(IWorkbenchCommandConstants.EDIT_CONTENT_ASSIST);
         if (binding != null) {
             labelText = NLS.bind(DebugUIMessages.DetailFormatterDialog_17, new String[] { binding });
@@ -205,6 +207,7 @@ public class DetailFormatterDialog extends StatusDialog implements ITypeProvider
        
 		// Set up content assist in the viewer
         IHandler handler = new AbstractHandler() {
+			@Override
 			public Object execute(ExecutionEvent event) throws ExecutionException {
 				if (fSnippetViewer.canDoOperation(ISourceViewer.CONTENTASSIST_PROPOSALS) && fSnippetViewer.getControl().isFocusControl()){
 					findCorrespondingType();
@@ -213,7 +216,7 @@ public class DetailFormatterDialog extends StatusDialog implements ITypeProvider
 				return null;
 			}
 		};
-        IHandlerService handlerService = (IHandlerService) workbench.getAdapter(IHandlerService.class);
+        IHandlerService handlerService = workbench.getAdapter(IHandlerService.class);
         fHandlerActivation = handlerService.activateHandler(ITextEditorActionDefinitionIds.CONTENT_ASSIST_PROPOSALS, handler);
         
 		checkValues();
@@ -249,8 +252,10 @@ public class DetailFormatterDialog extends StatusDialog implements ITypeProvider
 		document.set(fDetailFormatter.getSnippet());
 		
 		fSnippetViewer.getDocument().addDocumentListener(new IDocumentListener() {
+			@Override
 			public void documentAboutToBeChanged(DocumentEvent event) {
 			}
+			@Override
 			public void documentChanged(DocumentEvent event) {
 				checkValues();
 			}
@@ -374,6 +379,7 @@ public class DetailFormatterDialog extends StatusDialog implements ITypeProvider
 	/**
 	 * Return the type object which corresponds to the given name.
 	 */
+	@Override
 	public IType getType() {
 		if (!fTypeSearched) {
 			findCorrespondingType();
@@ -387,7 +393,7 @@ public class DetailFormatterDialog extends StatusDialog implements ITypeProvider
 	@Override
 	public boolean close() {
 		IWorkbench workbench = PlatformUI.getWorkbench();
-        IHandlerService handlerService = (IHandlerService) workbench.getAdapter(IHandlerService.class);
+        IHandlerService handlerService = workbench.getAdapter(IHandlerService.class);
         handlerService.deactivateHandler(fHandlerActivation);
 		fSnippetViewer.dispose();
 		return super.close();

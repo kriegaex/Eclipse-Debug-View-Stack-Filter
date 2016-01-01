@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2012 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -7,6 +7,7 @@
  * 
  * Contributors:
  *     IBM Corporation - initial API and implementation
+ *     Jesper Steen Møller <jesper@selskabet.org> - Bug 430839
  *******************************************************************************/
 package org.eclipse.jdi.internal;
 
@@ -17,13 +18,20 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.eclipse.jdi.internal.jdwp.JdwpClassObjectID;
+import org.eclipse.jdi.internal.jdwp.JdwpCommandPacket;
 import org.eclipse.jdi.internal.jdwp.JdwpID;
 import org.eclipse.jdi.internal.jdwp.JdwpInterfaceID;
 
+import com.sun.jdi.ClassNotLoadedException;
 import com.sun.jdi.ClassNotPreparedException;
 import com.sun.jdi.ClassType;
+import com.sun.jdi.IncompatibleThreadStateException;
 import com.sun.jdi.InterfaceType;
+import com.sun.jdi.InvalidTypeException;
+import com.sun.jdi.InvocationException;
+import com.sun.jdi.Method;
 import com.sun.jdi.ReferenceType;
+import com.sun.jdi.ThreadReference;
 import com.sun.jdi.Value;
 
 /**
@@ -93,6 +101,7 @@ public class InterfaceTypeImpl extends ReferenceTypeImpl implements
 	/* (non-Javadoc)
 	 * @see com.sun.jdi.InterfaceType#implementors()
 	 */
+	@Override
 	public List<ClassType> implementors() {
 		// Note that this information should not be cached.
 		List<ClassType> implementors = new ArrayList<ClassType>();
@@ -117,6 +126,7 @@ public class InterfaceTypeImpl extends ReferenceTypeImpl implements
 	/* (non-Javadoc)
 	 * @see com.sun.jdi.InterfaceType#subinterfaces()
 	 */
+	@Override
 	public List<InterfaceType> subinterfaces() {
 		// Note that this information should not be cached.
 		List<InterfaceType> implementors = new ArrayList<InterfaceType>();
@@ -141,10 +151,56 @@ public class InterfaceTypeImpl extends ReferenceTypeImpl implements
 	/* (non-Javadoc)
 	 * @see com.sun.jdi.InterfaceType#superinterfaces()
 	 */
+	@Override
 	public List<InterfaceType> superinterfaces() {
 		return interfaces();
 	}
 
+	/* (non-Javadoc)
+	 * @see com.sun.jdi.InterfaceType#invokeMethod(com.sun.jdi.ThreadReference, com.sun.jdi.Method, java.util.List, int)
+	 */
+	@Override
+	public Value invokeMethod(ThreadReference thread, Method method, List<? extends Value> arguments, int options) throws InvalidTypeException,
+			ClassNotLoadedException, IncompatibleThreadStateException,
+			InvocationException {
+		return invokeMethod(thread, method, arguments, options, JdwpCommandPacket.IT_INVOKE_METHOD);
+	}
+
+	/**
+	 * @return Returns a the single non-abstract Method visible from this class
+	 *         that has the given name and signature.
+	 */
+	public Method concreteMethodByName(String name, String signature) {
+		/*
+		 * Recursion is used to find the method: The methods of its own (own
+		 * methods() command); The methods of it's superclass.
+		 */
+
+		Iterator<Method> methods = methods().iterator();
+		Method method;
+		while (methods.hasNext()) {
+			method = methods.next();
+			if (method.name().equals(name) && method.signature().equals(signature)) {
+				if (method.isAbstract()) {
+					return null;
+				}
+				return method;
+			}
+		}
+
+		if (superinterfaces() != null) {
+			for (InterfaceType superi: superinterfaces()) {
+				Method foundMethod = ((InterfaceTypeImpl)superi).concreteMethodByName(name, signature);
+				if (foundMethod != null) {
+					return foundMethod;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	
 	/**
 	 * @return Returns true if this type has been initialized.
 	 */

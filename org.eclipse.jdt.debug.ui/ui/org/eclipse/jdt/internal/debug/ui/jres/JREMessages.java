@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright (c) 2000, 2013 IBM Corporation and others.
+ *  Copyright (c) 2000, 2015 IBM Corporation and others.
  *  All rights reserved. This program and the accompanying materials
  *  are made available under the terms of the Eclipse Public License v1.0
  *  which accompanies this distribution, and is available at
@@ -7,6 +7,8 @@
  * 
  *  Contributors:
  *  IBM - Initial API and implementation
+ *  Frits Jalvingh - Contribution for Bug 459831 - [launching] Support attaching 
+ *     	external annotations to a JRE container
  *******************************************************************************/
 package org.eclipse.jdt.internal.debug.ui.jres;
 
@@ -74,6 +76,11 @@ public class JREMessages extends NLS {
 	public static String JREsPreferencePage_13;
 
 	public static String JREsPreferencePage_3;
+	public static String JREsPreferencePage_4;
+	public static String JREsPreferencePage_5;
+	public static String JREsPreferencePage_6;
+	public static String JREsPreferencePage_7;
+	public static String JREsPreferencePage_8;
 
 	public static String addVMDialog_duplicateName;
 	public static String addVMDialog_enterLocation;
@@ -142,6 +149,10 @@ public class JREMessages extends NLS {
 	public static String VMLibraryBlock_9;
 	public static String VMLibraryBlock_10;
 	public static String VMLibraryBlock_11;
+	public static String VMExternalAnnsBlock_1;
+	public static String VMExternalAnnsBlock_2;
+	public static String VMExternalAnnsBlock_3;
+	public static String VMExternalAnnsBlock_4;
 
 	static {
 		// load message values from bundle file

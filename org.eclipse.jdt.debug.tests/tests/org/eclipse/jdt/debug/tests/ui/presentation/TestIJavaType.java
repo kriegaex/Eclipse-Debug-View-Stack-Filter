@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011 IBM Corporation and others.
+ * Copyright (c) 2011, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -33,6 +33,7 @@ public class TestIJavaType implements IJavaType {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.IDebugElement#getModelIdentifier()
 	 */
+	@Override
 	public String getModelIdentifier() {
 		return JDIDebugModel.getPluginIdentifier();
 	}
@@ -40,6 +41,7 @@ public class TestIJavaType implements IJavaType {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.IDebugElement#getDebugTarget()
 	 */
+	@Override
 	public IDebugTarget getDebugTarget() {
 		return null;
 	}
@@ -47,6 +49,7 @@ public class TestIJavaType implements IJavaType {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.IDebugElement#getLaunch()
 	 */
+	@Override
 	public ILaunch getLaunch() {
 		return null;
 	}
@@ -54,13 +57,15 @@ public class TestIJavaType implements IJavaType {
 	/* (non-Javadoc)
 	 * @see org.eclipse.core.runtime.IAdaptable#getAdapter(java.lang.Class)
 	 */
-	public Object getAdapter(Class adapter) {
+	@Override
+	public <T> T getAdapter(Class<T> adapter) {
 		return null;
 	}
 
 	/* (non-Javadoc)
 	 * @see org.eclipse.jdt.debug.core.IJavaType#getSignature()
 	 */
+	@Override
 	public String getSignature() throws DebugException {
 		return sig;
 	}
@@ -68,6 +73,7 @@ public class TestIJavaType implements IJavaType {
 	/* (non-Javadoc)
 	 * @see org.eclipse.jdt.debug.core.IJavaType#getName()
 	 */
+	@Override
 	public String getName() throws DebugException {
 		return name;
 	}

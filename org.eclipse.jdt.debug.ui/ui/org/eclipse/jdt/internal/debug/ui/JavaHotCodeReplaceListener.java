@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2012 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -27,17 +27,21 @@ import org.eclipse.swt.widgets.Shell;
 
 public class JavaHotCodeReplaceListener implements IJavaHotCodeReplaceListener {
 
+	private HotCodeReplaceErrorDialog fHotCodeReplaceFailedErrorDialog = null;
+
 	private ILabelProvider fLabelProvider= DebugUITools.newDebugModelPresentation();
 
 	/**
 	 * @see IJavaHotCodeReplaceListener#hotCodeReplaceSucceeded(IJavaDebugTarget)
 	 */
+	@Override
 	public void hotCodeReplaceSucceeded(IJavaDebugTarget target) {
 	}
 
 	/**
 	 * @see IJavaHotCodeReplaceListener#hotCodeReplaceFailed(IJavaDebugTarget, DebugException)
 	 */
+	@Override
 	public void hotCodeReplaceFailed(final IJavaDebugTarget target, final DebugException exception) {
 		if ((exception != null &&!JDIDebugUIPlugin.getDefault().getPreferenceStore().getBoolean(IJDIPreferencesConstants.PREF_ALERT_HCR_FAILED)) ||
 			((exception == null) && !JDIDebugUIPlugin.getDefault().getPreferenceStore().getBoolean(IJDIPreferencesConstants.PREF_ALERT_HCR_NOT_SUPPORTED))) {
@@ -82,14 +86,27 @@ public class JavaHotCodeReplaceListener implements IJavaHotCodeReplaceListener {
 		final String title = DebugUIMessages.JDIDebugUIPlugin_Hot_code_replace_failed_1; 
 		final String message = NLS.bind(DebugUIMessages.JDIDebugUIPlugin__0__was_unable_to_replace_the_running_code_with_the_code_in_the_workspace__2, new Object[] {vmName, launchName});
 		display.asyncExec(new Runnable() {
+			@Override
 			public void run() {
 				if (display.isDisposed()) {
 					return;
 				}
+				if (fHotCodeReplaceFailedErrorDialog != null) {
+					Shell shell = fHotCodeReplaceFailedErrorDialog.getShell();
+					if (shell != null && !shell.isDisposed()) {
+						return;
+					}
+				}
 				Shell shell= JDIDebugUIPlugin.getActiveWorkbenchShell();
-				HotCodeReplaceErrorDialog dialog= new HotCodeReplaceErrorDialog(shell, title, message, status, preference, alertMessage, JDIDebugUIPlugin.getDefault().getPreferenceStore(), target);
-				dialog.setBlockOnOpen(false);
-				dialog.open();
+				fHotCodeReplaceFailedErrorDialog = new HotCodeReplaceErrorDialog(shell, title, message, status, preference, alertMessage, JDIDebugUIPlugin.getDefault().getPreferenceStore(), target) {
+					@Override
+					public boolean close() {
+						fHotCodeReplaceFailedErrorDialog = null;
+						return super.close();
+					}
+				};
+				fHotCodeReplaceFailedErrorDialog.setBlockOnOpen(false);
+				fHotCodeReplaceFailedErrorDialog.open();
 			}
 		});
 	}
@@ -97,6 +114,7 @@ public class JavaHotCodeReplaceListener implements IJavaHotCodeReplaceListener {
 	/**
 	 * @see IJavaHotCodeReplaceListener#obsoleteMethods(IJavaDebugTarget)
 	 */
+	@Override
 	public void obsoleteMethods(final IJavaDebugTarget target) {
 		if (!JDIDebugUIPlugin.getDefault().getPreferenceStore().getBoolean(IJDIPreferencesConstants.PREF_ALERT_OBSOLETE_METHODS)) {
 			return;
@@ -111,6 +129,7 @@ public class JavaHotCodeReplaceListener implements IJavaHotCodeReplaceListener {
 		final IStatus status= new Status(IStatus.WARNING, JDIDebugUIPlugin.getUniqueIdentifier(), IStatus.WARNING, DebugUIMessages.JDIDebugUIPlugin_Stepping_may_be_hazardous_1, null); 
 		final String toggleMessage= DebugUIMessages.JDIDebugUIPlugin_2; 
 		display.asyncExec(new Runnable() {
+			@Override
 			public void run() {
 				if (display.isDisposed()) {
 					return;

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2012 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -15,7 +15,6 @@ package org.eclipse.jdt.internal.debug.ui.actions;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
 
-import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -24,7 +23,6 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.debug.core.DebugEvent;
 import org.eclipse.debug.core.DebugException;
 import org.eclipse.debug.core.ILaunch;
-import org.eclipse.debug.core.model.ISourceLocator;
 import org.eclipse.debug.core.model.IStackFrame;
 import org.eclipse.debug.core.model.IValue;
 import org.eclipse.debug.ui.DebugUITools;
@@ -33,7 +31,6 @@ import org.eclipse.debug.ui.IDebugUIConstants;
 import org.eclipse.debug.ui.IDebugView;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaProject;
-import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.debug.core.IJavaDebugTarget;
 import org.eclipse.jdt.debug.core.IJavaObject;
 import org.eclipse.jdt.debug.core.IJavaStackFrame;
@@ -46,6 +43,7 @@ import org.eclipse.jdt.debug.eval.IEvaluationListener;
 import org.eclipse.jdt.debug.eval.IEvaluationResult;
 import org.eclipse.jdt.debug.ui.IJavaDebugUIConstants;
 import org.eclipse.jdt.internal.debug.core.JDIDebugPlugin;
+import org.eclipse.jdt.internal.debug.core.JavaDebugUtils;
 import org.eclipse.jdt.internal.debug.ui.EvaluationContextManager;
 import org.eclipse.jdt.internal.debug.ui.JDIDebugUIPlugin;
 import org.eclipse.jdt.internal.debug.ui.JavaWordFinder;
@@ -137,7 +135,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 		if (page != null) {
 			IWorkbenchPart activePart= page.getActivePart();
 			if (activePart != null) {
-				IDebugView a = (IDebugView)activePart.getAdapter(IDebugView.class);
+				IDebugView a = activePart.getAdapter(IDebugView.class);
 				if (a != null) {
 					if (a.getViewer() != null) {
 						ISelection s = a.getViewer().getSelection();
@@ -191,6 +189,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	/**
 	 * @see IEvaluationListener#evaluationComplete(IEvaluationResult)
 	 */
+	@Override
 	public void evaluationComplete(final IEvaluationResult result) {
 		// if plug-in has shutdown, ignore - see bug# 8693
 		if (JDIDebugUIPlugin.getDefault() == null) {
@@ -235,7 +234,8 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 		setNewTargetPart(getTargetPart());
         
         IRunnableWithProgress runnable = new IRunnableWithProgress() {
-            public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+            @Override
+			public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
                 if (stackFrame.isSuspended()) {
                     IJavaElement javaElement= getJavaElement(stackFrame);
                     if (javaElement != null) {
@@ -299,20 +299,12 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 		if (launch == null) {
 			return null;
 		}
-		ISourceLocator locator= launch.getSourceLocator();
-		if (locator == null)
+		try {
+			return JavaDebugUtils.resolveJavaElement(stackFrame, launch);
+		}
+		catch (CoreException e) {
 			return null;
-		
-		Object sourceElement = locator.getSourceElement(stackFrame);
-		if (sourceElement instanceof IJavaElement) {
-			return (IJavaElement) sourceElement;
-		} else if (sourceElement instanceof IResource) {
-			IJavaProject project = JavaCore.create(((IResource)sourceElement).getProject());
-			if (project.exists()) {
-				return project;
-			}
-		}			
-		return null;
+		}
 	}
 	
 	/**
@@ -412,11 +404,13 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 		if (launch == null) {
 			return false;
 		}
-		ISourceLocator locator= launch.getSourceLocator();
-		if (locator == null) {
+		Object sourceElement;
+		try {
+			sourceElement = JavaDebugUtils.resolveSourceElement(stackFrame, launch);
+		}
+		catch (CoreException e) {
 			return false;
 		}
-		Object sourceElement = locator.getSourceElement(stackFrame);
 		if (sourceElement == null) {
 			return false;
 		}
@@ -455,7 +449,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 				}
 				if (view != null) {
 					page.bringToTop(view);
-					return (IDataDisplay)view.getAdapter(IDataDisplay.class);
+					return view.getAdapter(IDataDisplay.class);
 				}			
 			}
 		}
@@ -466,7 +460,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	protected IDataDisplay getDirectDataDisplay() {
 		IWorkbenchPart part= getTargetPart();
 		if (part != null) {
-			IDataDisplay display= (IDataDisplay)part.getAdapter(IDataDisplay.class);
+			IDataDisplay display= part.getAdapter(IDataDisplay.class);
 			if (display != null) {
 				IWorkbenchPage page= JDIDebugUIPlugin.getActivePage();
 				if (page != null) {
@@ -484,7 +478,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 		if (page != null) {
 			IWorkbenchPart activePart= page.getActivePart();
 			if (activePart != null) {
-				IDataDisplay display= (IDataDisplay)activePart.getAdapter(IDataDisplay.class);
+				IDataDisplay display= activePart.getAdapter(IDataDisplay.class);
 				if (display != null) {
 					return display;
 				}	
@@ -593,6 +587,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	/* (non-Javadoc)
 	 * @see org.eclipse.ui.IActionDelegate#run(IAction)
 	 */
+	@Override
 	public void run(IAction action) {
 		update();
 		run();
@@ -601,6 +596,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	/* (non-Javadoc)
 	 * @see org.eclipse.ui.IActionDelegate#selectionChanged(IAction, ISelection)
 	 */
+	@Override
 	public void selectionChanged(IAction action, ISelection selection) { 
 		setAction(action);
 	}	
@@ -608,6 +604,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	/**
 	 * @see IWorkbenchWindowActionDelegate#dispose()
 	 */
+	@Override
 	public void dispose() {
 		disposeDebugModelPresentation();
 		IWorkbenchWindow win = getWindow();
@@ -619,6 +616,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	/**
 	 * @see IWorkbenchWindowActionDelegate#init(IWorkbenchWindow)
 	 */
+	@Override
 	public void init(IWorkbenchWindow window) {
 		setWindow(window);
 		IWorkbenchPage page= window.getActivePage();
@@ -663,6 +661,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	/**
 	 * @see IEditorActionDelegate#setActiveEditor(IAction, IEditorPart)
 	 */
+	@Override
 	public void setActiveEditor(IAction action, IEditorPart targetEditor) {
 		setAction(action);
 		setTargetPart(targetEditor);
@@ -671,6 +670,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	/**
 	 * @see IPartListener#partActivated(IWorkbenchPart)
 	 */
+	@Override
 	public void partActivated(IWorkbenchPart part) {
 		setTargetPart(part);
 	}
@@ -678,12 +678,14 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	/**
 	 * @see IPartListener#partBroughtToTop(IWorkbenchPart)
 	 */
+	@Override
 	public void partBroughtToTop(IWorkbenchPart part) {
 	}
 
 	/**
 	 * @see IPartListener#partClosed(IWorkbenchPart)
 	 */
+	@Override
 	public void partClosed(IWorkbenchPart part) {
 		if (part == getTargetPart()) {
 			setTargetPart(null);
@@ -696,18 +698,21 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	/**
 	 * @see IPartListener#partDeactivated(IWorkbenchPart)
 	 */
+	@Override
 	public void partDeactivated(IWorkbenchPart part) {
 	}
 
 	/**
 	 * @see IPartListener#partOpened(IWorkbenchPart)
 	 */
+	@Override
 	public void partOpened(IWorkbenchPart part) {
 	}
 	
 	/**
 	 * @see IViewActionDelegate#init(IViewPart)
 	 */
+	@Override
 	public void init(IViewPart view) {
 		setTargetPart(view);
 	}
@@ -743,6 +748,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	/**
 	 * @see IObjectActionDelegate#setActivePart(IAction, IWorkbenchPart)
 	 */
+	@Override
 	public void setActivePart(IAction action, IWorkbenchPart targetPart) {
 		setAction(action);
 		setTargetPart(targetPart);
@@ -760,6 +766,7 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	/**
 	 * @see ISnippetStateChangedListener#snippetStateChanged(JavaSnippetEditor)
 	 */
+	@Override
 	public void snippetStateChanged(JavaSnippetEditor editor) {
 		if (editor != null && !editor.isEvaluating() && editor.getFile() != null) {
 			update();
@@ -802,10 +809,10 @@ public abstract class EvaluateAction implements IEvaluationListener, IWorkbenchW
 	 * @return associated style text widget or <code>null</code>
 	 */
 	public static StyledText getStyledText(IWorkbenchPart part) {
-		ITextViewer viewer = (ITextViewer)part.getAdapter(ITextViewer.class);
+		ITextViewer viewer = part.getAdapter(ITextViewer.class);
 		StyledText textWidget = null;
 		if (viewer == null) {
-			Control control = (Control) part.getAdapter(Control.class);
+			Control control = part.getAdapter(Control.class);
 			if (control instanceof StyledText) {
 				textWidget = (StyledText) control;
 			}

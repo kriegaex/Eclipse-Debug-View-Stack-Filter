@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2012 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -86,6 +86,7 @@ public class JavaBreakpointPage extends PropertyPage {
 	@Override
 	public boolean performOk() {
 		IWorkspaceRunnable wr = new IWorkspaceRunnable() {
+			@Override
 			public void run(IProgressMonitor monitor) throws CoreException {
 				IJavaBreakpoint breakpoint = getBreakpoint();
 				boolean delOnCancel = breakpoint.getMarker().getAttribute(ATTR_DELETE_ON_CANCEL) != null;
@@ -180,18 +181,23 @@ public class JavaBreakpointPage extends PropertyPage {
 		try {
             if (getBreakpoint().getMarker().getAttribute(ATTR_DELETE_ON_CANCEL) != null) {
             	getShell().addShellListener(new ShellListener() {
-                    public void shellActivated(ShellEvent e) {
+                    @Override
+					public void shellActivated(ShellEvent e) {
                         Shell shell = (Shell)e.getSource();
                         shell.setText(NLS.bind(PropertyPageMessages.JavaBreakpointPage_10, new String[]{getName(getBreakpoint())})); 
                         shell.removeShellListener(this);
                     }
-                    public void shellClosed(ShellEvent e) {
+                    @Override
+					public void shellClosed(ShellEvent e) {
                     }
-                    public void shellDeactivated(ShellEvent e) {
+                    @Override
+					public void shellDeactivated(ShellEvent e) {
                     }
-                    public void shellDeiconified(ShellEvent e) {
+                    @Override
+					public void shellDeiconified(ShellEvent e) {
                     }
-                    public void shellIconified(ShellEvent e) {
+                    @Override
+					public void shellIconified(ShellEvent e) {
                     }
                 });
             }
@@ -207,7 +213,7 @@ public class JavaBreakpointPage extends PropertyPage {
      * @return the name of the element
      */
     private String getName(IAdaptable element) {
-        IWorkbenchAdapter adapter = (IWorkbenchAdapter) element.getAdapter(IWorkbenchAdapter.class);
+		IWorkbenchAdapter adapter = element.getAdapter(IWorkbenchAdapter.class);
         if (adapter != null) {
             return adapter.getLabel(element);
         } 
@@ -330,6 +336,7 @@ public class JavaBreakpointPage extends PropertyPage {
 		}
 		fEditor.createControl(parent);
 		fEditor.addPropertyListener(new IPropertyListener() {
+			@Override
 			public void propertyChanged(Object source, int propId) {
 				IStatus status = fEditor.getStatus();
 				if (status.isOK()) {

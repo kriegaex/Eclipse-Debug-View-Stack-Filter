@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2006, 2013 IBM Corporation and others.
+ * Copyright (c) 2006, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -71,6 +71,7 @@ JDIDebugUIPlugin.getUniqueIdentifier(),
 	/**
 	 * @see org.eclipse.debug.ui.contexts.IDebugContextListener#debugContextChanged(org.eclipse.debug.ui.contexts.DebugContextEvent)
 	 */
+	@Override
 	public void debugContextChanged(DebugContextEvent event) {
 		if ((event.getFlags() & DebugContextEvent.ACTIVATED) > 0) {
 			IWorkbenchPart part = event.getDebugContextProvider().getPart();
@@ -85,7 +86,7 @@ JDIDebugUIPlugin.getUniqueIdentifier(),
 							if (ss.size() == 1) {
 								Object firstElement = ss.getFirstElement();
 								if (firstElement instanceof IAdaptable) {
-									IJavaStackFrame frame = (IJavaStackFrame) ((IAdaptable)firstElement).getAdapter(IJavaStackFrame.class);
+									IJavaStackFrame frame = ((IAdaptable) firstElement).getAdapter(IJavaStackFrame.class);
 									if (frame != null) {
 										IJavaThread thread = (IJavaThread)frame.getThread();
 										try {
@@ -122,6 +123,7 @@ JDIDebugUIPlugin.getUniqueIdentifier(),
 	/* (non-Javadoc)
 	 * @see org.eclipse.core.runtime.preferences.IEclipsePreferences.IPreferenceChangeListener#preferenceChange(org.eclipse.core.runtime.preferences.IEclipsePreferences.PreferenceChangeEvent)
 	 */
+	@Override
 	public void preferenceChange(PreferenceChangeEvent event) {
 		if (IJDIPreferencesConstants.PREF_OPEN_INSPECT_POPUP_ON_EXCEPTION.equals(event.getKey())) {
 			IDebugContextManager manager = DebugUITools.getDebugContextManager();

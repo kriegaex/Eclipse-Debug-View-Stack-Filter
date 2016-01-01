@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2011 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -7,10 +7,12 @@
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
+ *     Jesper Steen Møller <jesper@selskabet.org> - Bug 430839
  *******************************************************************************/
 package org.eclipse.jdt.internal.debug.core.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -20,6 +22,7 @@ import org.eclipse.jdt.debug.core.IJavaClassObject;
 import org.eclipse.jdt.debug.core.IJavaFieldVariable;
 import org.eclipse.jdt.debug.core.IJavaObject;
 import org.eclipse.jdt.debug.core.IJavaReferenceType;
+import org.eclipse.jdt.debug.core.IJavaValue;
 
 import com.ibm.icu.text.MessageFormat;
 import com.sun.jdi.AbsentInformationException;
@@ -30,6 +33,7 @@ import com.sun.jdi.Field;
 import com.sun.jdi.ObjectReference;
 import com.sun.jdi.ReferenceType;
 import com.sun.jdi.Type;
+import com.sun.jdi.Value;
 import com.sun.jdi.VirtualMachine;
 
 /**
@@ -61,6 +65,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaReferenceType#getAvailableStrata()
 	 */
+	@Override
 	public String[] getAvailableStrata() {
 		List<String> strata = getReferenceType().availableStrata();
 		return strata.toArray(new String[strata.size()]);
@@ -80,6 +85,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaReferenceType#getDefaultStratum()
 	 */
+	@Override
 	public String getDefaultStratum() throws DebugException {
 		try {
 			return getReferenceType().defaultStratum();
@@ -96,6 +102,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * @see
 	 * org.eclipse.jdt.debug.core.IJavaReferenceType#getField(java.lang.String)
 	 */
+	@Override
 	public IJavaFieldVariable getField(String name) throws DebugException {
 		try {
 			ReferenceType type = (ReferenceType) getUnderlyingType();
@@ -118,6 +125,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaReferenceType#getClassObject()
 	 */
+	@Override
 	public IJavaClassObject getClassObject() throws DebugException {
 		try {
 			ReferenceType type = (ReferenceType) getUnderlyingType();
@@ -139,6 +147,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaReferenceType#getAllFieldNames()
 	 */
+	@Override
 	public String[] getAllFieldNames() throws DebugException {
 		if (fAllFields == null) {
 			try {
@@ -164,6 +173,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * @see
 	 * org.eclipse.jdt.debug.core.IJavaReferenceType#getDeclaredFieldNames()
 	 */
+	@Override
 	public String[] getDeclaredFieldNames() throws DebugException {
 		if (fDeclaredFields == null) {
 			try {
@@ -190,6 +200,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * org.eclipse.jdt.debug.core.IJavaReferenceType#getSourcePaths(java.lang
 	 * .String)
 	 */
+	@Override
 	public String[] getSourcePaths(String stratum) throws DebugException {
 		try {
 			List<String> sourcePaths = getReferenceType().sourcePaths(stratum);
@@ -208,6 +219,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaReferenceType#getSourceName()
 	 */
+	@Override
 	public String getSourceName() throws DebugException {
 		try {
 			return getReferenceType().sourceName();
@@ -226,6 +238,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * org.eclipse.jdt.debug.core.IJavaReferenceType#getSourceNames(java.lang
 	 * .String)
 	 */
+	@Override
 	public String[] getSourceNames(String stratum) throws DebugException {
 		try {
 			List<String> sourceNames = getReferenceType().sourceNames(stratum);
@@ -244,6 +257,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaReferenceType#getClassLoaderObject()
 	 */
+	@Override
 	public IJavaObject getClassLoaderObject() throws DebugException {
 		try {
 			ReferenceType type = (ReferenceType) getUnderlyingType();
@@ -338,6 +352,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaReferenceType#getGenericSignature()
 	 */
+	@Override
 	public String getGenericSignature() throws DebugException {
 		return getReferenceType().genericSignature();
 	}
@@ -347,6 +362,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaReferenceType#getInstances(long)
 	 */
+	@Override
 	public IJavaObject[] getInstances(long max) throws DebugException {
 		try {
 			List<ObjectReference> list = getReferenceType().instances(max);
@@ -367,6 +383,7 @@ public abstract class JDIReferenceType extends JDIType implements
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaReferenceType#getInstanceCount()
 	 */
+	@Override
 	public long getInstanceCount() throws DebugException {
 		JDIDebugTarget target = getJavaDebugTarget();
 		if (target.supportsInstanceRetrieval()) {
@@ -385,4 +402,26 @@ public abstract class JDIReferenceType extends JDIType implements
 		}
 		return -1;
 	}
+
+	/**
+	 * Utility method to convert argument array to an argument list.
+	 * 
+	 * @param args
+	 *            array of arguments, as <code>IJavaValue</code>s, possibly
+	 *            <code>null</code> or empty
+	 * @return a list of underlying <code>Value</code>s
+	 */
+	protected List<Value> convertArguments(IJavaValue[] args) {
+		List<Value> arguments = null;
+		if (args == null) {
+			arguments = Collections.EMPTY_LIST;
+		} else {
+			arguments = new ArrayList<Value>(args.length);
+			for (IJavaValue arg : args) {
+				arguments.add(((JDIValue) arg).getUnderlyingValue());
+			}
+		}
+		return arguments;
+	}
+
 }

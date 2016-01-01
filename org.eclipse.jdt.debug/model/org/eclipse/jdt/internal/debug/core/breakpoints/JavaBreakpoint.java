@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2014 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -178,6 +178,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * 
 	 * @see org.eclipse.debug.core.model.IBreakpoint#getModelIdentifier()
 	 */
+	@Override
 	public String getModelIdentifier() {
 		return JDIDebugModel.getPluginIdentifier();
 	}
@@ -287,6 +288,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * .sun.jdi.event.Event,
 	 * org.eclipse.jdt.internal.debug.core.model.JDIDebugTarget)
 	 */
+	@Override
 	public boolean handleEvent(Event event, JDIDebugTarget target,
 			boolean suspendVote, EventSet eventSet) {
 		if (event instanceof ClassPrepareEvent) {
@@ -319,6 +321,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * (com.sun.jdi.event.Event,
 	 * org.eclipse.jdt.internal.debug.core.model.JDIDebugTarget, boolean)
 	 */
+	@Override
 	public void eventSetComplete(Event event, JDIDebugTarget target,
 			boolean suspend, EventSet eventSet) {
 		ThreadReference threadRef = null;
@@ -412,8 +415,10 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	protected boolean installableReferenceType(ReferenceType type,
 			JDIDebugTarget target) throws CoreException {
 		String installableType = getTypeName();
+		if (installableType == null )
+			return false;
 		String queriedType = type.name();
-		if (installableType == null || queriedType == null) {
+		if( queriedType == null) {
 			return false;
 		}
 		int index = queriedType.indexOf('<');
@@ -835,6 +840,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaBreakpoint#isInstalled()
 	 */
+	@Override
 	public boolean isInstalled() throws CoreException {
 		return ensureMarker().getAttribute(INSTALL_COUNT, 0) > 0;
 	}
@@ -884,6 +890,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaBreakpoint#getTypeName()
 	 */
+	@Override
 	public String getTypeName() throws CoreException {
 		if (fInstalledTypeName == null) {
 			return ensureMarker().getAttribute(TYPE_NAME, null);
@@ -934,6 +941,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaBreakpoint#getHitCount()
 	 */
+	@Override
 	public int getHitCount() throws CoreException {
 		return ensureMarker().getAttribute(HIT_COUNT, -1);
 	}
@@ -943,6 +951,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaBreakpoint#setHitCount(int)
 	 */
+	@Override
 	public void setHitCount(int count) throws CoreException {
 		if (getHitCount() != count) {
 			if (!isEnabled() && count > -1) {
@@ -988,6 +997,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaBreakpoint#getSuspendPolicy()
 	 */
+	@Override
 	public int getSuspendPolicy() throws CoreException {
 		return ensureMarker().getAttribute(SUSPEND_POLICY,
 				IJavaBreakpoint.SUSPEND_THREAD);
@@ -998,6 +1008,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaBreakpoint#setSuspendPolicy(int)
 	 */
+	@Override
 	public void setSuspendPolicy(int suspendPolicy) throws CoreException {
 		if (getSuspendPolicy() != suspendPolicy) {
 			setAttribute(SUSPEND_POLICY, suspendPolicy);
@@ -1085,6 +1096,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * org.eclipse.jdt.debug.core.IJavaBreakpoint#setThreadFilter(org.eclipse
 	 * .jdt.debug.core.IJavaThread)
 	 */
+	@Override
 	public void setThreadFilter(IJavaThread thread) throws CoreException {
 		if (!(thread.getDebugTarget() instanceof JDIDebugTarget)
 				|| !(thread instanceof JDIThread)) {
@@ -1113,6 +1125,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * org.eclipse.debug.core.IDebugEventSetListener#handleDebugEvents(org.eclipse
 	 * .debug.core.DebugEvent[])
 	 */
+	@Override
 	public void handleDebugEvents(DebugEvent[] events) {
 		for (DebugEvent event : events) {
 			if (event.getKind() == DebugEvent.TERMINATE) {
@@ -1166,6 +1179,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * org.eclipse.jdt.debug.core.IJavaBreakpoint#getThreadFilter(org.eclipse
 	 * .jdt.debug.core.IJavaDebugTarget)
 	 */
+	@Override
 	public IJavaThread getThreadFilter(IJavaDebugTarget target) {
 		return fFilteredThreadsByTarget.get(target);
 	}
@@ -1175,6 +1189,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaBreakpoint#getThreadFilters()
 	 */
+	@Override
 	public IJavaThread[] getThreadFilters() {
 		IJavaThread[] threads = null;
 		Collection<IJavaThread> values = fFilteredThreadsByTarget.values();
@@ -1190,6 +1205,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * org.eclipse.jdt.debug.core.IJavaBreakpoint#removeThreadFilter(org.eclipse
 	 * .jdt.debug.core.IJavaDebugTarget)
 	 */
+	@Override
 	public void removeThreadFilter(IJavaDebugTarget javaTarget)
 			throws CoreException {
 		if (!(javaTarget instanceof JDIDebugTarget)) {
@@ -1233,6 +1249,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * org.eclipse.jdt.debug.core.IJavaBreakpoint#addInstanceFilter(org.eclipse
 	 * .jdt.debug.core.IJavaObject)
 	 */
+	@Override
 	public void addInstanceFilter(IJavaObject object) throws CoreException {
 		if (fInstanceFilters == null) {
 			fInstanceFilters = new ArrayList<IJavaObject>();
@@ -1261,6 +1278,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaBreakpoint#getInstanceFilters()
 	 */
+	@Override
 	public IJavaObject[] getInstanceFilters() {
 		if (fInstanceFilters == null || fInstanceFilters.isEmpty()) {
 			return fgEmptyInstanceFilters;
@@ -1276,6 +1294,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * org.eclipse.jdt.debug.core.IJavaBreakpoint#removeInstanceFilter(org.eclipse
 	 * .jdt.debug.core.IJavaObject)
 	 */
+	@Override
 	public void removeInstanceFilter(IJavaObject object) throws CoreException {
 		if (fInstanceFilters == null) {
 			return;
@@ -1301,7 +1320,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 						JDIDebugPlugin.ERROR,
 						JDIDebugBreakpointMessages.JavaBreakpoint_Exception,
 						null);
-				IJavaDebugTarget jdiTarget = (IJavaDebugTarget) target
+				IJavaDebugTarget jdiTarget = target
 						.getAdapter(IJavaDebugTarget.class);
 				if (jdiTarget instanceof JDIDebugTarget) {
 					try {
@@ -1347,6 +1366,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaBreakpoint#supportsInstanceFilters()
 	 */
+	@Override
 	public boolean supportsInstanceFilters() {
 		return true;
 	}
@@ -1356,6 +1376,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaBreakpoint#supportsThreadFilters()
 	 */
+	@Override
 	public boolean supportsThreadFilters() {
 		return true;
 	}
@@ -1367,6 +1388,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * org.eclipse.jdt.debug.core.IJavaBreakpoint#addBreakpointListener(java
 	 * .lang.String)
 	 */
+	@Override
 	public synchronized void addBreakpointListener(String identifier)
 			throws CoreException {
 		if (fBreakpointListenerIds == null) {
@@ -1403,6 +1425,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * org.eclipse.jdt.debug.core.IJavaBreakpoint#removeBreakpointListener(java
 	 * .lang.String)
 	 */
+	@Override
 	public synchronized boolean removeBreakpointListener(String identifier)
 			throws CoreException {
 		if (fBreakpointListenerIds != null) {
@@ -1419,6 +1442,7 @@ public abstract class JavaBreakpoint extends Breakpoint implements IJavaBreakpoi
 	 * 
 	 * @see org.eclipse.jdt.debug.core.IJavaBreakpoint#getBreakpointListeners()
 	 */
+	@Override
 	public synchronized String[] getBreakpointListeners() throws CoreException {
 		// use the cache in case the underlying marker has been deleted
 		if (fBreakpointListenerIds == null) {

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2011 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -41,6 +41,7 @@ import org.eclipse.ui.model.IWorkbenchAdapter;
 		/**
 		 * @see IWorkbenchAdapter#getChildren(Object)
 		 */
+		@Override
 		public Object[] getChildren(Object o) {
 			return new Object[0];
 		}
@@ -48,6 +49,7 @@ import org.eclipse.ui.model.IWorkbenchAdapter;
 		/**
 		 * @see IWorkbenchAdapter#getImageDescriptor(Object)
 		 */
+		@Override
 		public ImageDescriptor getImageDescriptor(Object o) {
 			if (o instanceof JavaProjectSourceLocation) {
 				return PlatformUI.getWorkbench().getSharedImages().getImageDescriptor(IDE.SharedImages.IMG_OBJ_PROJECT);
@@ -62,6 +64,7 @@ import org.eclipse.ui.model.IWorkbenchAdapter;
 		/**
 		 * @see IWorkbenchAdapter#getLabel(Object)
 		 */
+		@Override
 		public String getLabel(Object o) {
 			if (o instanceof JavaProjectSourceLocation) {
 				return fJavaElementLabelProvider.getText(((JavaProjectSourceLocation)o).getJavaProject());
@@ -81,6 +84,7 @@ import org.eclipse.ui.model.IWorkbenchAdapter;
 		/**
 		 * @see IWorkbenchAdapter#getParent(Object)
 		 */
+		@Override
 		public Object getParent(Object o) {
 			return null;
 		}
@@ -89,13 +93,15 @@ import org.eclipse.ui.model.IWorkbenchAdapter;
 	/**
 	 * @see IAdapterFactory#getAdapter(Object, Class)
 	 */
-	public Object getAdapter(Object obj, Class adapterType) {
+	@Override
+	@SuppressWarnings("unchecked")
+	public <T> T getAdapter(Object obj, Class<T> adapterType) {
 		if (adapterType.isInstance(obj)) {
-			return obj;
+			return (T) obj;
 		}
 		if (adapterType == IWorkbenchAdapter.class) {
 			if (obj instanceof IJavaSourceLocation) {
-				return new SourceLocationPropertiesAdapter();
+				return (T) new SourceLocationPropertiesAdapter();
 			}
 		}
 		return null;
@@ -104,7 +110,8 @@ import org.eclipse.ui.model.IWorkbenchAdapter;
 	/**
 	 * @see IAdapterFactory#getAdapterList()
 	 */
-	public Class[] getAdapterList() {
+	@Override
+	public Class<?>[] getAdapterList() {
 		return new Class[] {
 			IWorkbenchAdapter.class,
 		};

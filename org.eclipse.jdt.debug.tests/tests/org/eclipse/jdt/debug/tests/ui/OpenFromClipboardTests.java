@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright (c) 2010, 2013 IBM Corporation and others.
+ *  Copyright (c) 2010, 2015 IBM Corporation and others.
  *  All rights reserved. This program and the accompanying materials
  *  are made available under the terms of the Eclipse Public License v1.0
  *  which accompanies this distribution, and is available at
@@ -13,34 +13,27 @@ package org.eclipse.jdt.debug.tests.ui;
 import java.util.ArrayList;
 import java.util.List;
 
-import junit.extensions.TestSetup;
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
-
-import org.junit.Assert;
-
-import org.eclipse.jdt.debug.testplugin.JavaProjectHelper;
-
-import org.eclipse.swt.widgets.Display;
-
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.Path;
-
 import org.eclipse.core.resources.IContainer;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.ResourcesPlugin;
-
+import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.Path;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaModelException;
-
+import org.eclipse.jdt.debug.testplugin.JavaProjectHelper;
 import org.eclipse.jdt.internal.debug.ui.actions.OpenFromClipboardAction;
-
 import org.eclipse.jdt.launching.IVMInstall;
 import org.eclipse.jdt.launching.JavaRuntime;
+import org.eclipse.swt.widgets.Display;
+import org.junit.Assert;
+
+import junit.extensions.TestSetup;
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
 
 
 /**
@@ -141,6 +134,7 @@ public class OpenFromClipboardTests extends TestCase {
 	private List<?> getJavaElementMatches(final String textData) {
 		final List<?> matches = new ArrayList<Object>();
 		Display.getDefault().syncExec(new Runnable() {
+			@Override
 			public void run() {
 				fAccessor.invoke("getJavaElementMatches", new Class[] { String.class, List.class }, new Object[] { textData, matches });
 			}
@@ -588,6 +582,14 @@ public class OpenFromClipboardTests extends TestCase {
 
 	public void testInvalidPattern_2() {
 		String s = "()";
+		assertEquals(INVALID, getMatachingPattern(s));
+	}
+
+	public void testInvalidPattern_3() throws Exception {
+		// https://bugs.eclipse.org/bugs/show_bug.cgi?id=426392#c6
+		String s = "java.lang.IllegalArgumentException\n" + 
+				"	at org.eclipse.core.runtime.Assert.isLegal(Assert.java:63)\n" + 
+				"	at something.completely.Different(Different.java:47)";
 		assertEquals(INVALID, getMatachingPattern(s));
 	}
 }

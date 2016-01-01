@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2005 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -25,18 +25,22 @@ import org.eclipse.ui.model.IWorkbenchAdapter;
 /**
  * Adapter factory for java breakpoints.
  */
+@SuppressWarnings("unchecked")
 public class JavaBreakpointWorkbenchAdapterFactory implements IAdapterFactory {
-	public Object getAdapter(Object adaptableObject, Class adapterType) {
+	@Override
+	public <T> T getAdapter(Object adaptableObject, Class<T> adapterType) {
 		if (adapterType != IWorkbenchAdapter.class || !(adaptableObject instanceof IJavaBreakpoint)) {
 			return null;
 		}
-		return new IWorkbenchAdapter() {
+		return (T) new IWorkbenchAdapter() {
 			private JavaElementLabelProvider fJavaLabelProvider;
 
+			@Override
 			public Object[] getChildren(Object o) {
 				return null;
 			}
 
+			@Override
 			public ImageDescriptor getImageDescriptor(Object object) {
 				return null;
 			}
@@ -47,6 +51,7 @@ public class JavaBreakpointWorkbenchAdapterFactory implements IAdapterFactory {
 			 * in situations where the user is changing values (like the title bar
 			 * of the property dialog).
 			 */
+			@Override
 			public String getLabel(Object o) {
 				if (!(o instanceof IJavaBreakpoint)) {
 					return null;
@@ -105,6 +110,7 @@ public class JavaBreakpointWorkbenchAdapterFactory implements IAdapterFactory {
 				return label.toString();
 			}
 
+			@Override
 			public Object getParent(Object o) {
 				return null;
 			}
@@ -118,7 +124,8 @@ public class JavaBreakpointWorkbenchAdapterFactory implements IAdapterFactory {
 		};
 	}
 
-	public Class[] getAdapterList() {
+	@Override
+	public Class<?>[] getAdapterList() {
 		return new Class[] { IWorkbenchAdapter.class };
 	}
 }

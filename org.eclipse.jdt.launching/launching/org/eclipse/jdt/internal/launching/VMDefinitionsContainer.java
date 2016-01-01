@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2013 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -7,6 +7,8 @@
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
+ *     Frits Jalvingh - Contribution for Bug 459831 - [launching] Support attaching 
+ *     	external annotations to a JRE container
  *******************************************************************************/
 package org.eclipse.jdt.internal.launching;
 
@@ -382,6 +384,10 @@ public class VMDefinitionsContainer {
 			Element element = doc.createElement("libraryLocation");  //$NON-NLS-1$
 			element.setAttribute("jreJar", locations[i].getSystemLibraryPath().toString()); //$NON-NLS-1$
 			element.setAttribute("jreSrc", locations[i].getSystemLibrarySourcePath().toString()); //$NON-NLS-1$
+			IPath annotationsPath = locations[i].getExternalAnnotationsPath();
+			if (null != annotationsPath && !annotationsPath.isEmpty()) {
+				element.setAttribute("jreExternalAnns", annotationsPath.toString()); //$NON-NLS-1$
+			}
 			
 			IPath packageRootPath = locations[i].getPackageRootPath();
             if (packageRootPath != null) {
@@ -432,22 +438,18 @@ public class VMDefinitionsContainer {
 	 */
 	public static void parseXMLIntoContainer(InputStream inputStream, VMDefinitionsContainer container) throws IOException {
 
-		// Wrapper the stream for efficient parsing
-		InputStream stream= new BufferedInputStream(inputStream);
 
 		// Do the parsing and obtain the top-level node
 		Element config= null;		
-		try {
+		// Wrapper the stream for efficient parsing
+		try (InputStream stream = new BufferedInputStream(inputStream)) {
 			DocumentBuilder parser= DocumentBuilderFactory.newInstance().newDocumentBuilder();
 			parser.setErrorHandler(new DefaultHandler());
 			config = parser.parse(new InputSource(stream)).getDocumentElement();
 		} catch (SAXException e) {
 			throw new IOException(LaunchingMessages.JavaRuntime_badFormat); 
 		} catch (ParserConfigurationException e) {
-			stream.close();
 			throw new IOException(LaunchingMessages.JavaRuntime_badFormat); 
-		} finally {
-			stream.close();
 		}
 		
 		// If the top-level node wasn't what we expected, bail out
@@ -633,6 +635,7 @@ public class VMDefinitionsContainer {
 		String pkgRoot= libLocationElement.getAttribute("pkgRoot"); //$NON-NLS-1$
 		String jreJavadoc= libLocationElement.getAttribute("jreJavadoc"); //$NON-NLS-1$
 		String jreIndex= libLocationElement.getAttribute("jreIndex"); //$NON-NLS-1$
+		String externalAnns = libLocationElement.getAttribute("jreExternalAnns"); //$NON-NLS-1$
 		// javadoc URL
 		URL javadocURL= null;
 		if (jreJavadoc.length() == 0) {
@@ -656,7 +659,8 @@ public class VMDefinitionsContainer {
 			}
 		}		
 		if (jreJar != null && jreSrc != null && pkgRoot != null) {
-			return new LibraryLocation(new Path(jreJar), new Path(jreSrc), new Path(pkgRoot), javadocURL, indexURL);
+			return new LibraryLocation(new Path(jreJar), new Path(jreSrc), new Path(pkgRoot), javadocURL, indexURL
+					, externalAnns == null ? null : new Path(externalAnns));
 		}
 		LaunchingPlugin.log("Library location element is specified incorrectly.");  //$NON-NLS-1$
 		return null;

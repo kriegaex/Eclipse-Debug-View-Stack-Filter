@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2007, 2012 IBM Corporation and others.
+ * Copyright (c) 2007, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -130,6 +130,7 @@ public class SocketListenConnectorProcess implements IProcess {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.IProcess#getExitValue()
 	 */
+	@Override
 	public int getExitValue() throws DebugException {
 		return 0;
 	}
@@ -137,6 +138,7 @@ public class SocketListenConnectorProcess implements IProcess {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.IProcess#getLabel()
 	 */
+	@Override
 	public String getLabel() {
 		return NLS.bind(LaunchingMessages.SocketListenConnectorProcess_1, new String[]{fPort});
 	}
@@ -144,6 +146,7 @@ public class SocketListenConnectorProcess implements IProcess {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.IProcess#getLaunch()
 	 */
+	@Override
 	public ILaunch getLaunch() {
 		return fLaunch;
 	}
@@ -151,6 +154,7 @@ public class SocketListenConnectorProcess implements IProcess {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.ITerminate#canTerminate()
 	 */
+	@Override
 	public boolean canTerminate() {
 		return !fTerminated;
 	}
@@ -158,6 +162,7 @@ public class SocketListenConnectorProcess implements IProcess {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.ITerminate#isTerminated()
 	 */
+	@Override
 	public boolean isTerminated() {
 		return fTerminated;
 	}
@@ -165,6 +170,7 @@ public class SocketListenConnectorProcess implements IProcess {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.ITerminate#terminate()
 	 */
+	@Override
 	public void terminate() throws DebugException {
 		if (!fTerminated){
 			fTerminated = true;
@@ -201,6 +207,7 @@ public class SocketListenConnectorProcess implements IProcess {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.IProcess#getStreamsProxy()
 	 */
+	@Override
 	public IStreamsProxy getStreamsProxy() {
 		return null;
 	}
@@ -208,6 +215,7 @@ public class SocketListenConnectorProcess implements IProcess {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.IProcess#getAttribute(java.lang.String)
 	 */
+	@Override
 	public String getAttribute(String key) {
 		return null;
 	}
@@ -215,13 +223,15 @@ public class SocketListenConnectorProcess implements IProcess {
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.model.IProcess#setAttribute(java.lang.String, java.lang.String)
 	 */
+	@Override
 	public void setAttribute(String key, String value) {
 	}
 
 	/* (non-Javadoc)
 	 * @see org.eclipse.core.runtime.IAdaptable#getAdapter(java.lang.Class)
 	 */
-	public Object getAdapter(Class adapter) {
+	@Override
+	public <T> T getAdapter(Class<T> adapter) {
 		return null;
 	}
 

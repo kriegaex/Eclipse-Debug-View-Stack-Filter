@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2014 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -123,8 +123,9 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
      */
     protected void report(final String message, final IWorkbenchPart part) {
         JDIDebugUIPlugin.getStandardDisplay().asyncExec(new Runnable() {
-            public void run() {
-                IEditorStatusLine statusLine = (IEditorStatusLine) part.getAdapter(IEditorStatusLine.class);
+            @Override
+			public void run() {
+                IEditorStatusLine statusLine = part.getAdapter(IEditorStatusLine.class);
                 if (statusLine != null) {
                     if (message != null) {
                         statusLine.setMessage(true, message, null);
@@ -188,7 +189,8 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
     /* (non-Javadoc)
      * @see org.eclipse.debug.ui.actions.IToggleBreakpointsTarget#toggleLineBreakpoints(org.eclipse.ui.IWorkbenchPart, org.eclipse.jface.viewers.ISelection)
      */
-    public void toggleLineBreakpoints(IWorkbenchPart part, ISelection selection) throws CoreException {
+    @Override
+	public void toggleLineBreakpoints(IWorkbenchPart part, ISelection selection) throws CoreException {
     	toggleLineBreakpoints(part, selection, false, null);
     }
     
@@ -216,7 +218,8 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
      * @see org.eclipse.debug.ui.actions.IToggleBreakpointsTarget#canToggleLineBreakpoints(IWorkbenchPart,
      *      ISelection)
      */
-    public boolean canToggleLineBreakpoints(IWorkbenchPart part, ISelection selection) {
+    @Override
+	public boolean canToggleLineBreakpoints(IWorkbenchPart part, ISelection selection) {
     	if (isRemote(part, selection)) {
     		return false;
     	}
@@ -229,7 +232,8 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
      * @see org.eclipse.debug.ui.actions.IToggleBreakpointsTarget#toggleMethodBreakpoints(org.eclipse.ui.IWorkbenchPart,
      *      org.eclipse.jface.viewers.ISelection)
      */
-    public void toggleMethodBreakpoints(final IWorkbenchPart part, final ISelection finalSelection) {
+    @Override
+	public void toggleMethodBreakpoints(final IWorkbenchPart part, final ISelection finalSelection) {
         Job job = new Job("Toggle Method Breakpoints") { //$NON-NLS-1$
             @Override
 			protected IStatus run(IProgressMonitor monitor) {
@@ -246,10 +250,11 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
                     if (selection instanceof IStructuredSelection) {
                     	IMethod[] members = getMethods((IStructuredSelection) selection, isInterface);
                         if (members.length == 0) {
-                        	if(isInterface)
-                        		report(ActionMessages.ToggleBreakpointAdapter_6, part); 
-                        	else
-                        		report(ActionMessages.ToggleBreakpointAdapter_9, part); 
+                        	if(isInterface) {
+								report(ActionMessages.ToggleBreakpointAdapter_6, part);
+							} else {
+								report(ActionMessages.ToggleBreakpointAdapter_9, part);
+							} 
                             return Status.OK_STATUS;
                         }
                         IJavaBreakpoint breakpoint = null;
@@ -600,7 +605,8 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
      * @see org.eclipse.debug.ui.actions.IToggleBreakpointsTarget#canToggleMethodBreakpoints(org.eclipse.ui.IWorkbenchPart,
      *      org.eclipse.jface.viewers.ISelection)
      */
-    public boolean canToggleMethodBreakpoints(IWorkbenchPart part, ISelection selection) {
+    @Override
+	public boolean canToggleMethodBreakpoints(IWorkbenchPart part, ISelection selection) {
     	if (isRemote(part, selection)) {
     		return false;
     	}
@@ -648,7 +654,7 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
     	if (part instanceof ITextEditor) {
     		return (ITextEditor) part;
     	}
-    	return (ITextEditor) part.getAdapter(ITextEditor.class);
+    	return part.getAdapter(ITextEditor.class);
     }
 
     /**
@@ -668,8 +674,9 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
                 if (thing instanceof IMethod) {
                 	IMethod method = (IMethod) thing;
                 	if(isInterace){
-                		if (Flags.isDefaultMethod(method.getFlags()) || Flags.isStatic(method.getFlags())) 
-                    		methods.add(method);
+                		if (Flags.isDefaultMethod(method.getFlags()) || Flags.isStatic(method.getFlags())) {
+							methods.add(method);
+						}
                 	}
                 	else if (!Flags.isAbstract(method.getFlags())) {
                 		methods.add(method);
@@ -856,7 +863,8 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
      * @see org.eclipse.debug.ui.actions.IToggleBreakpointsTarget#toggleWatchpoints(org.eclipse.ui.IWorkbenchPart,
      *      org.eclipse.jface.viewers.ISelection)
      */
-    public void toggleWatchpoints(final IWorkbenchPart part, final ISelection finalSelection) {
+    @Override
+	public void toggleWatchpoints(final IWorkbenchPart part, final ISelection finalSelection) {
         Job job = new Job("Toggle Watchpoints") { //$NON-NLS-1$
             @Override
 			protected IStatus run(IProgressMonitor monitor) {
@@ -1058,7 +1066,7 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
      */
     protected static IResource getResource(IEditorPart editor) {
         IEditorInput editorInput = editor.getEditorInput();
-        IResource resource = (IResource) editorInput.getAdapter(IFile.class);
+        IResource resource = editorInput.getAdapter(IFile.class);
         if (resource == null) {
             resource = ResourcesPlugin.getWorkspace().getRoot();
         }
@@ -1076,7 +1084,7 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
      * @return handle or <code>null</code>
      */
     protected IMethod getMethodHandle(IEditorPart editorPart, String typeName, String methodName, String signature) throws CoreException {
-        IJavaElement element = (IJavaElement) editorPart.getEditorInput().getAdapter(IJavaElement.class);
+        IJavaElement element = editorPart.getEditorInput().getAdapter(IJavaElement.class);
         IType type = null;
         if (element instanceof ICompilationUnit) {
             IType[] types = ((ICompilationUnit) element).getAllTypes();
@@ -1169,7 +1177,8 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
      * @see org.eclipse.debug.ui.actions.IToggleBreakpointsTarget#canToggleWatchpoints(org.eclipse.ui.IWorkbenchPart,
      *      org.eclipse.jface.viewers.ISelection)
      */
-    public boolean canToggleWatchpoints(IWorkbenchPart part, ISelection selection) {
+    @Override
+	public boolean canToggleWatchpoints(IWorkbenchPart part, ISelection selection) {
     	if (isRemote(part, selection)) {
     		return false;
     	}
@@ -1239,7 +1248,7 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
 	 * @since 3.4
      */
     private ITypeRoot getTypeRoot(IEditorInput input) {
-    	ITypeRoot root = (ITypeRoot) input.getAdapter(IClassFile.class);
+		ITypeRoot root = input.getAdapter(IClassFile.class);
     	if(root == null) {
     		 IWorkingCopyManager manager = JavaUI.getWorkingCopyManager();
              root = manager.getWorkingCopy(input);
@@ -1280,7 +1289,8 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
      * @see org.eclipse.debug.ui.actions.IToggleBreakpointsTargetExtension#toggleBreakpoints(org.eclipse.ui.IWorkbenchPart,
      *      org.eclipse.jface.viewers.ISelection)
      */
-    public void toggleBreakpoints(IWorkbenchPart part, ISelection selection) throws CoreException {
+    @Override
+	public void toggleBreakpoints(IWorkbenchPart part, ISelection selection) throws CoreException {
     	ISelection sel = translateToMembers(part, selection);
     	if(sel instanceof IStructuredSelection) {
     		IMember member = (IMember) ((IStructuredSelection)sel).getFirstElement();
@@ -1338,19 +1348,22 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
 			Display display= shell != null && !shell.isDisposed() ? shell.getDisplay() : PlatformUI.getWorkbench().getDisplay();
 			if (!display.isDisposed()) {
 				display.syncExec(new Runnable() {
+					@Override
 					public void run() {
 						MessageDialogWithToggle dialog= MessageDialogWithToggle.openOkCancelConfirm(shell, ActionMessages.ToggleBreakpointAdapter_confirmDeleteTitle,
 								ActionMessages.ToggleBreakpointAdapter_confirmDeleteMessage, ActionMessages.ToggleBreakpointAdapter_confirmDeleteShowAgain, false,
 								null, null);
-						if (dialog.getToggleState())
+						if (dialog.getToggleState()) {
 							prefs.putBoolean(IJDIPreferencesConstants.PREF_PROMPT_DELETE_CONDITIONAL_BREAKPOINT, false);
+						}
 						result[0]= dialog.getReturnCode() == IDialogConstants.OK_ID;
 					}
 				});
 			}
 		}
-		if (result[0])
+		if (result[0]) {
 			DebugUITools.deleteBreakpoints(new IBreakpoint[] { breakpoint }, shell, monitor);
+		}
 	}
 
     /*
@@ -1359,7 +1372,8 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
      * @see org.eclipse.debug.ui.actions.IToggleBreakpointsTargetExtension#canToggleBreakpoints(org.eclipse.ui.IWorkbenchPart,
      *      org.eclipse.jface.viewers.ISelection)
      */
-    public boolean canToggleBreakpoints(IWorkbenchPart part, ISelection selection) {
+    @Override
+	public boolean canToggleBreakpoints(IWorkbenchPart part, ISelection selection) {
     	if (isRemote(part, selection)) {
     		return false;
     	}    	
@@ -1369,12 +1383,13 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.ui.actions.IToggleBreakpointsTargetExtension2#toggleBreakpointsWithEvent(org.eclipse.ui.IWorkbenchPart, org.eclipse.jface.viewers.ISelection, org.eclipse.swt.widgets.Event)
 	 */
+	@Override
 	public void toggleBreakpointsWithEvent(IWorkbenchPart part, ISelection selection, Event event) throws CoreException {
 		if(event != null) {
 			if((event.stateMask & SWT.MOD2) > 0) {
 				ITextEditor editor = getTextEditor(part);
 				if(editor != null) {
-					IVerticalRulerInfo info = (IVerticalRulerInfo) editor.getAdapter(IVerticalRulerInfo.class);
+					IVerticalRulerInfo info = editor.getAdapter(IVerticalRulerInfo.class);
 					if(info != null) {
 						IBreakpoint bp = BreakpointUtils.getBreakpointFromEditor(editor, info);
 						if(bp != null) {
@@ -1387,7 +1402,7 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
 			else if((event.stateMask & SWT.MOD1) > 0) {
 				ITextEditor editor = getTextEditor(part);
 				if(editor != null) {
-					IVerticalRulerInfo info = (IVerticalRulerInfo) editor.getAdapter(IVerticalRulerInfo.class);
+					IVerticalRulerInfo info = editor.getAdapter(IVerticalRulerInfo.class);
 					if(info != null) {
 						IBreakpoint bp = BreakpointUtils.getBreakpointFromEditor(editor, info);
 						if(bp != null) {
@@ -1409,6 +1424,7 @@ public class ToggleBreakpointAdapter implements IToggleBreakpointsTargetExtensio
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.ui.actions.IToggleBreakpointsTargetExtension2#canToggleBreakpointsWithEvent(org.eclipse.ui.IWorkbenchPart, org.eclipse.jface.viewers.ISelection, org.eclipse.swt.widgets.Event)
 	 */
+	@Override
 	public boolean canToggleBreakpointsWithEvent(IWorkbenchPart part, ISelection selection, Event event) {
 		return canToggleBreakpoints(part, selection);
 	}

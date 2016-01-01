@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2013 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -48,7 +48,6 @@ import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchListener;
 import org.eclipse.debug.core.ILaunchManager;
 import org.eclipse.debug.core.model.IDebugTarget;
-import org.eclipse.debug.core.model.ISourceLocator;
 import org.eclipse.debug.core.model.IThread;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
@@ -220,6 +219,7 @@ public class JavaHotCodeReplaceManager implements IResourceChangeListener,
 	/**
 	 * @see IResourceChangeListener#resourceChanged(org.eclipse.core.resources.IResourceChangeEvent)
 	 */
+	@Override
 	public void resourceChanged(IResourceChangeEvent event) {
 		List<IProject> projects = getBuiltProjects(event);
 		if (!projects.isEmpty()) {
@@ -311,6 +311,7 @@ public class JavaHotCodeReplaceManager implements IResourceChangeListener,
 		final List<JDIDebugTarget> noHotSwapTargets = getNoHotSwapTargets();
 		if (!hotSwapTargets.isEmpty()) {
 			Runnable runnable = new Runnable() {
+				@Override
 				public void run() {
 					doHotCodeReplace(hotSwapTargets, resources, qualifiedNames);
 				}
@@ -319,6 +320,7 @@ public class JavaHotCodeReplaceManager implements IResourceChangeListener,
 		}
 		if (!noHotSwapTargets.isEmpty()) {
 			Runnable runnable = new Runnable() {
+				@Override
 				public void run() {
 					notifyUnsupportedHCR(noHotSwapTargets, resources,
 							qualifiedNames);
@@ -1037,27 +1039,19 @@ public class JavaHotCodeReplaceManager implements IResourceChangeListener,
 		if (launch == null) {
 			return null;
 		}
-		ISourceLocator locator = launch.getSourceLocator();
-		if (locator == null) {
+		try {
+			IJavaElement sourceElement = JavaDebugUtils.resolveJavaElement(frame, launch);
+			if (sourceElement instanceof IType) {
+				return ((IType) sourceElement).getCompilationUnit();
+			}
+			if (sourceElement instanceof ICompilationUnit) {
+				return (ICompilationUnit) sourceElement;
+			}
 			return null;
 		}
-		IJavaDebugTarget target = (IJavaDebugTarget) frame.getDebugTarget();
-		String def = target.getDefaultStratum();
-		target.setDefaultStratum("Java"); //$NON-NLS-1$
-		Object sourceElement = locator.getSourceElement(frame);
-		target.setDefaultStratum(def);
-		if (!(sourceElement instanceof IJavaElement)
-				&& sourceElement instanceof IAdaptable) {
-			sourceElement = ((IAdaptable) sourceElement)
-					.getAdapter(IJavaElement.class);
+		catch (CoreException e) {
+			return null;
 		}
-		if (sourceElement instanceof IType) {
-			return ((IType) sourceElement).getCompilationUnit();
-		}
-		if (sourceElement instanceof ICompilationUnit) {
-			return (ICompilationUnit) sourceElement;
-		}
-		return null;
 	}
 
 	/**
@@ -1166,6 +1160,7 @@ public class JavaHotCodeReplaceManager implements IResourceChangeListener,
 		 * If the associated resource is a class file which has been changed,
 		 * record it.
 		 */
+		@Override
 		public boolean visit(IResourceDelta delta) {
 			if (delta == null
 					|| 0 == (delta.getKind() & IResourceDelta.CHANGED)) {
@@ -1175,8 +1170,9 @@ public class JavaHotCodeReplaceManager implements IResourceChangeListener,
 			if (resource != null) {
 				switch (resource.getType()) {
 				case IResource.FILE:
-					if (0 == (delta.getFlags() & IResourceDelta.CONTENT))
+					if (0 == (delta.getFlags() & IResourceDelta.CONTENT)) {
 						return false;
+					}
 					if (CLASS_FILE_EXTENSION.equals(resource.getFullPath()
 							.getFileExtension())) {
 						IPath localLocation = resource.getLocation();
@@ -1336,10 +1332,11 @@ public class JavaHotCodeReplaceManager implements IResourceChangeListener,
 	/**
 	 * @see ILaunchListener#launchRemoved(ILaunch)
 	 */
+	@Override
 	public void launchRemoved(ILaunch launch) {
 		IDebugTarget[] debugTargets = launch.getDebugTargets();
 		for (IDebugTarget debugTarget : debugTargets) {
-			IJavaDebugTarget jt = (IJavaDebugTarget) debugTarget
+			IJavaDebugTarget jt = debugTarget
 					.getAdapter(IJavaDebugTarget.class);
 			if (jt != null) {
 				deregisterTarget((JDIDebugTarget) jt);
@@ -1353,10 +1350,11 @@ public class JavaHotCodeReplaceManager implements IResourceChangeListener,
 	 * 
 	 * @see org.eclipse.debug.core.ILaunchListener#launchAdded(org.eclipse.debug.core.ILaunch)
 	 */
+	@Override
 	public void launchAdded(ILaunch launch) {
 		IDebugTarget[] debugTargets = launch.getDebugTargets();
 		for (IDebugTarget debugTarget : debugTargets) {
-			IJavaDebugTarget jt = (IJavaDebugTarget) debugTarget
+			IJavaDebugTarget jt = debugTarget
 					.getAdapter(IJavaDebugTarget.class);
 			if (jt != null) {
 				JDIDebugTarget target = (JDIDebugTarget) jt;
@@ -1381,6 +1379,7 @@ public class JavaHotCodeReplaceManager implements IResourceChangeListener,
 	 * 
 	 * @see ILaunchListener#launchChanged(ILaunch)
 	 */
+	@Override
 	public void launchChanged(ILaunch launch) {
 		launchAdded(launch);
 	}
@@ -1392,13 +1391,14 @@ public class JavaHotCodeReplaceManager implements IResourceChangeListener,
 	 * org.eclipse.debug.core.IDebugEventSetListener#handleDebugEvents(org.eclipse
 	 * .debug.core.DebugEvent[])
 	 */
+	@Override
 	public void handleDebugEvents(DebugEvent[] events) {
 		for (DebugEvent event : events) {
 			if (event.getKind() == DebugEvent.TERMINATE) {
 				Object source = event.getSource();
 				if (source instanceof IAdaptable
 						&& source instanceof IDebugTarget) {
-					IJavaDebugTarget jt = (IJavaDebugTarget) ((IAdaptable) source)
+					IJavaDebugTarget jt = ((IAdaptable) source)
 							.getAdapter(IJavaDebugTarget.class);
 					if (jt != null) {
 						deregisterTarget((JDIDebugTarget) jt);
@@ -1420,7 +1420,7 @@ public class JavaHotCodeReplaceManager implements IResourceChangeListener,
 		for (ILaunch launche : launches) {
 			IDebugTarget[] targets = launche.getDebugTargets();
 			for (IDebugTarget debugTarget : targets) {
-				IJavaDebugTarget jt = (IJavaDebugTarget) debugTarget
+				IJavaDebugTarget jt = debugTarget
 						.getAdapter(IJavaDebugTarget.class);
 				if (jt != null) {
 					if (((JDIDebugTarget) jt).isAvailable()) {

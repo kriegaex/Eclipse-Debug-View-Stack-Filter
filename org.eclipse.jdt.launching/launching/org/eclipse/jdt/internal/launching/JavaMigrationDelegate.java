@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2005, 2013 IBM Corporation and others.
+ * Copyright (c) 2005, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -46,6 +46,7 @@ public class JavaMigrationDelegate implements ILaunchConfigurationMigrationDeleg
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.ILaunchConfigurationMigrationDelegate#isCandidate()
 	 */
+	@Override
 	public boolean isCandidate(ILaunchConfiguration candidate) throws CoreException {
 		String pName = candidate.getAttribute(IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, EMPTY_STRING);
 		if(pName.equals(EMPTY_STRING)) {
@@ -106,7 +107,7 @@ public class JavaMigrationDelegate implements ILaunchConfigurationMigrationDeleg
 							try {
 								resource = type.getUnderlyingResource();
 								if(resource == null) {
-									resource = (IResource) type.getAdapter(IResource.class);
+									resource = type.getAdapter(IResource.class);
 								}
 							}
 							catch(JavaModelException jme) {
@@ -129,6 +130,7 @@ public class JavaMigrationDelegate implements ILaunchConfigurationMigrationDeleg
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.core.ILaunchConfigurationMigrationDelegate#migrate(org.eclipse.debug.core.ILaunchConfiguration)
 	 */
+	@Override
 	public void migrate(ILaunchConfiguration candidate) throws CoreException {
 		ILaunchConfigurationWorkingCopy wc = candidate.getWorkingCopy();
 		updateResourceMapping(wc);

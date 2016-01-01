@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2014 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -7,6 +7,7 @@
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
+ *      Bug Menot - Bug 445867
  *******************************************************************************/
 package org.eclipse.jdt.internal.debug.ui;
 
@@ -36,6 +37,7 @@ import org.eclipse.jdt.core.dom.QualifiedName;
 import org.eclipse.jdt.core.dom.StructuralPropertyDescriptor;
 import org.eclipse.jdt.core.dom.ThisExpression;
 import org.eclipse.jdt.debug.core.IJavaDebugTarget;
+import org.eclipse.jdt.debug.core.IJavaObject;
 import org.eclipse.jdt.debug.core.IJavaReferenceType;
 import org.eclipse.jdt.debug.core.IJavaStackFrame;
 import org.eclipse.jdt.debug.core.IJavaThread;
@@ -44,6 +46,7 @@ import org.eclipse.jdt.debug.core.IJavaValue;
 import org.eclipse.jdt.debug.core.IJavaVariable;
 import org.eclipse.jdt.internal.debug.core.JDIDebugPlugin;
 import org.eclipse.jdt.internal.debug.core.logicalstructures.JDIPlaceholderVariable;
+import org.eclipse.jdt.internal.debug.eval.ast.engine.ASTEvaluationEngine;
 import org.eclipse.jdt.ui.JavaUI;
 import org.eclipse.jdt.ui.SharedASTProvider;
 import org.eclipse.jdt.ui.text.java.hover.IJavaEditorTextHover;
@@ -66,6 +69,7 @@ public class JavaDebugHover implements IJavaEditorTextHover, ITextHoverExtension
 	/* (non-Javadoc)
 	 * @see org.eclipse.jdt.ui.text.java.hover.IJavaEditorTextHover#setEditor(org.eclipse.ui.IEditorPart)
 	 */
+	@Override
 	public void setEditor(IEditorPart editor) {
 	    fEditor = editor;
 	}
@@ -73,6 +77,7 @@ public class JavaDebugHover implements IJavaEditorTextHover, ITextHoverExtension
 	/* (non-Javadoc)
 	 * @see org.eclipse.jface.text.ITextHover#getHoverRegion(org.eclipse.jface.text.ITextViewer, int)
 	 */
+	@Override
 	public IRegion getHoverRegion(ITextViewer textViewer, int offset) {
 		return JavaWordFinder.findWord(textViewer.getDocument(), offset);
 	}
@@ -87,7 +92,7 @@ public class JavaDebugHover implements IJavaEditorTextHover, ITextHoverExtension
 	protected IJavaStackFrame getFrame() {
 	    IAdaptable adaptable = DebugUITools.getDebugContext();
 		if (adaptable != null) {
-			return (IJavaStackFrame)adaptable.getAdapter(IJavaStackFrame.class);
+			return adaptable.getAdapter(IJavaStackFrame.class);
 		}
 		return null;
 	}
@@ -95,6 +100,7 @@ public class JavaDebugHover implements IJavaEditorTextHover, ITextHoverExtension
 	/* (non-Javadoc)
 	 * @see org.eclipse.jface.text.ITextHover#getHoverInfo(org.eclipse.jface.text.ITextViewer, org.eclipse.jface.text.IRegion)
 	 */
+	@Override
 	public String getHoverInfo(ITextViewer textViewer, IRegion hoverRegion) {
 		Object object = getHoverInfo2(textViewer, hoverRegion);
 		if (object instanceof IVariable) {	
@@ -228,6 +234,7 @@ public class JavaDebugHover implements IJavaEditorTextHover, ITextHoverExtension
 	/* (non-Javadoc)
 	 * @see org.eclipse.jface.text.ITextHoverExtension#getHoverControlCreator()
 	 */
+	@Override
 	public IInformationControlCreator getHoverControlCreator() {
 		return new ExpressionInformationControlCreator();
 	}
@@ -235,6 +242,7 @@ public class JavaDebugHover implements IJavaEditorTextHover, ITextHoverExtension
 	/* (non-Javadoc)
 	 * @see org.eclipse.jface.text.ITextHoverExtension2#getHoverInfo2(org.eclipse.jface.text.ITextViewer, org.eclipse.jface.text.IRegion)
 	 */
+	@Override
 	public Object getHoverInfo2(ITextViewer textViewer, IRegion hoverRegion) {
 	    IJavaStackFrame frame = getFrame();
 	    if (frame != null) {
@@ -332,10 +340,11 @@ public class JavaDebugHover implements IJavaEditorTextHover, ITextHoverExtension
 								}
             		    	}
             		    } else {
-            		    	if (!frame.isStatic()) {
+							if (!frame.isStatic() && !frame.isNative()) {
             		    		// ensure that we only resolve a field access on 'this':
-            		    		if (!(codeAssist instanceof ITypeRoot))
-            		    			return null;
+            		    		if (!(codeAssist instanceof ITypeRoot)) {
+									return null;
+								}
             		    		ITypeRoot typeRoot = (ITypeRoot) codeAssist;
             		    		ASTNode root= SharedASTProvider.getAST(typeRoot, SharedASTProvider.WAIT_NO, null);
             		    		if (root == null) {
@@ -345,8 +354,9 @@ public class JavaDebugHover implements IJavaEditorTextHover, ITextHoverExtension
 									root = parser.createAST(null);
             		    		}
             		    		ASTNode node = NodeFinder.perform(root, hoverRegion.getOffset(), hoverRegion.getLength());
-            		    		if (node == null)
-            		    			return null;
+            		    		if (node == null) {
+									return null;
+								}
 								StructuralPropertyDescriptor locationInParent = node.getLocationInParent();
 								if (locationInParent == FieldAccess.NAME_PROPERTY) {
 									FieldAccess fieldAccess = (FieldAccess) node.getParent();
@@ -359,7 +369,10 @@ public class JavaDebugHover implements IJavaEditorTextHover, ITextHoverExtension
             		    		
             		    		String typeSignature = Signature.createTypeSignature(field.getDeclaringType().getFullyQualifiedName(), true);
             		    		typeSignature = typeSignature.replace('.', '/');
-            		    		variable = frame.getThis().getField(field.getElementName(), typeSignature);
+								IJavaObject ths = frame.getThis();
+								if (ths != null) {
+									variable = ths.getField(field.getElementName(), typeSignature);
+								}
             		    	}
             		    }
             		    if (variable != null) {
@@ -383,11 +396,32 @@ public class JavaDebugHover implements IJavaEditorTextHover, ITextHoverExtension
             					}
             				} else {
             					// compare unresolved signatures
+
+            					// Frames in classes with generics have declaringTypeName like class<V>
+            					// We must get rid of this '<V>' for proper comparison
+            					String frameDeclaringTypeName = frame.getDeclaringTypeName();
+            					int genericPartOffset = frameDeclaringTypeName.indexOf('<');
+            					if (genericPartOffset != -1) {
+            						frameDeclaringTypeName = frameDeclaringTypeName.substring(0, genericPartOffset);
+            					}
+
             					if (((frame.isConstructor() && method.isConstructor()) || frame.getMethodName().equals(method.getElementName()))
-            							&& frame.getDeclaringTypeName().endsWith(method.getDeclaringType().getElementName())
+            							&& frameDeclaringTypeName.endsWith(method.getDeclaringType().getElementName())
             							&& frame.getArgumentTypeNames().size() == method.getNumberOfParameters()) {
             						equal = true;
             					}
+            					else { // Finding variables in anonymous class
+									int index = frame.getDeclaringTypeName().indexOf('$');
+									if (index > 0) {
+										String name = frame.getDeclaringTypeName().substring(index + 1);
+										try {
+											Integer.getInteger(name);
+											return findLocalVariable(frame, ASTEvaluationEngine.ANONYMOUS_VAR_PREFIX + var.getElementName());
+										}
+										catch (NumberFormatException ex) {
+										}
+									}
+								}
             				}
             				// find variable if equal or method is a Lambda Method
             				if (equal || method.isLambdaMethod()) {

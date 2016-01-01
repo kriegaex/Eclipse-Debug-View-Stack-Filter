@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2007, 2012 IBM Corporation and others.
+ * Copyright (c) 2007, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -18,6 +18,8 @@ import java.util.List;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IAdaptable;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
 import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.ILaunchConfiguration;
 import org.eclipse.debug.core.ILaunchConfigurationType;
@@ -59,7 +61,7 @@ public class JavaApplicationLaunchShortcut extends JavaLaunchShortcut {
 		for (int i = 0; i < objects.length; i++) {
 			Object object = objects[i];
 			if (object instanceof IAdaptable) {
-				IJavaElement element = (IJavaElement) ((IAdaptable)object).getAdapter(IJavaElement.class);
+				IJavaElement element = ((IAdaptable) object).getAdapter(IJavaElement.class);
 				if (element != null) {
 					if (element instanceof IMember) {
 						// Use the declaring type if available
@@ -131,7 +133,7 @@ public class JavaApplicationLaunchShortcut extends JavaLaunchShortcut {
 			IJavaSearchScope scope = SearchEngine.createJavaSearchScope(javaElements, constraints);
 			return engine.searchMainMethods(context, scope, true);
 		} catch (InvocationTargetException e) {
-			throw (CoreException)e.getTargetException(); 
+			throw new CoreException(new Status(IStatus.ERROR, JDIDebugUIPlugin.getUniqueIdentifier(), e.getMessage(), e));
 		}
 	}
 	
@@ -143,7 +145,7 @@ public class JavaApplicationLaunchShortcut extends JavaLaunchShortcut {
 	private IType isMainMethod(Object o) {
 		if(o instanceof IAdaptable) {
 			IAdaptable adapt = (IAdaptable) o;
-			IJavaElement element = (IJavaElement) adapt.getAdapter(IJavaElement.class);
+			IJavaElement element = adapt.getAdapter(IJavaElement.class);
 			if(element != null && element.getElementType() == IJavaElement.METHOD) {
 				try {
 					IMethod method = (IMethod) element;

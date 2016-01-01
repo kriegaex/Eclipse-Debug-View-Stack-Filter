@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2012 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -43,6 +43,7 @@ public class JavaWatchExpressionDelegate implements IWatchExpressionDelegate {
 	/**
 	 * @see org.eclipse.debug.core.model.IWatchExpressionDelegate#getValue(java.lang.String, org.eclipse.debug.core.model.IDebugElement)
 	 */
+	@Override
 	public void evaluateExpression(String expression, IDebugElement context, IWatchExpressionListener listener) {
 		fExpressionText= expression;
 		fListener= listener;
@@ -60,7 +61,7 @@ public class JavaWatchExpressionDelegate implements IWatchExpressionDelegate {
 			fListener.watchEvaluationFinished(null);	
 		} else {
 			// consult the adapter in case of a wrappered debug model
-			final IJavaStackFrame javaStackFrame =(IJavaStackFrame) ((IAdaptable)frame).getAdapter(IJavaStackFrame.class);
+			final IJavaStackFrame javaStackFrame = ((IAdaptable) frame).getAdapter(IJavaStackFrame.class);
 			if (javaStackFrame != null) {
 				doEvaluation(javaStackFrame);
 			} else {
@@ -108,6 +109,7 @@ public class JavaWatchExpressionDelegate implements IWatchExpressionDelegate {
 			fStackFrame= frame;
 		}
 		
+		@Override
 		public void run() {
 			IJavaProject project = JavaDebugUtils.resolveJavaProject(fStackFrame);
 			if (project == null) {
@@ -117,20 +119,26 @@ public class JavaWatchExpressionDelegate implements IWatchExpressionDelegate {
 			IAstEvaluationEngine evaluationEngine= JDIDebugPlugin.getDefault().getEvaluationEngine(project, (IJavaDebugTarget) fStackFrame.getDebugTarget());
 			// the evaluation listener
 			IEvaluationListener listener= new IEvaluationListener() {
+				@Override
 				public void evaluationComplete(final IEvaluationResult result) {
 					IWatchExpressionResult watchResult= new IWatchExpressionResult() {
+						@Override
 						public IValue getValue() {
 							return result.getValue();
 						}
+						@Override
 						public boolean hasErrors() {
 							return result.hasErrors();
 						}
+						@Override
 						public String[] getErrorMessages() {
 							return JavaInspectExpression.getErrorMessages(result);
 						}
+						@Override
 						public String getExpressionText() {
 							return result.getSnippet();
 						}
+						@Override
 						public DebugException getException() {
 							return result.getException();
 						}

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2013 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -31,6 +31,7 @@ import org.eclipse.jdt.launching.LibraryLocation;
 import org.eclipse.jface.dialogs.ErrorDialog;
 import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.IMessageProvider;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.preference.PreferencePage;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
@@ -77,6 +78,7 @@ public class JREsPreferencePage extends PreferencePage implements IWorkbenchPref
 	/* (non-Javadoc)
 	 * @see org.eclipse.ui.IWorkbenchPreferencePage#init(org.eclipse.ui.IWorkbench)
 	 */
+	@Override
 	public void init(IWorkbench workbench) {
 	}
 
@@ -104,7 +106,7 @@ public class JREsPreferencePage extends PreferencePage implements IWorkbenchPref
 	protected Control createContents(Composite ancestor) {
 		initializeDialogUnits(ancestor);
 		
-		noDefaultAndApplyButton();
+		noDefaultButton();
 		
 		GridLayout layout= new GridLayout();
 		layout.numColumns= 1;
@@ -129,12 +131,16 @@ public class JREsPreferencePage extends PreferencePage implements IWorkbenchPref
 		fCompliance.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		fCompliance.setVisible(false);
 		fCompliance.addSelectionListener(new SelectionListener() {
+			@Override
 			public void widgetDefaultSelected(SelectionEvent e) {}
+			@Override
 			public void widgetSelected(SelectionEvent e) {openCompliancePreferencePage();}
 		});
 		PlatformUI.getWorkbench().getHelpSystem().setHelp(ancestor, IJavaDebugHelpContextIds.JRE_PREFERENCE_PAGE);		
 		initDefaultVM();
+		fJREBlock.initializeTimeStamp();
 		fJREBlock.addSelectionChangedListener(new ISelectionChangedListener() {
+			@Override
 			public void selectionChanged(SelectionChangedEvent event) {
 				IVMInstall install = getCurrentDefaultVM();
 				if (install == null) {
@@ -205,7 +211,7 @@ public class JREsPreferencePage extends PreferencePage implements IWorkbenchPref
 		IEclipsePreferences setting = InstanceScope.INSTANCE.getNode(JavaCore.PLUGIN_ID);
 		if(getContainer() instanceof IWorkbenchPreferenceContainer) {
 			IEclipsePreferences wcs = ((IWorkbenchPreferenceContainer)getContainer()).getWorkingCopyManager().getWorkingCopy(setting);
-			return wcs.get(JavaCore.COMPILER_COMPLIANCE, (String) JavaCore.getDefaultOptions().get(JavaCore.COMPILER_COMPLIANCE));
+			return wcs.get(JavaCore.COMPILER_COMPLIANCE, JavaCore.getDefaultOptions().get(JavaCore.COMPILER_COMPLIANCE));
 		}
 			return JavaCore.getOption(JavaCore.COMPILER_COMPLIANCE);
 		
@@ -240,6 +246,7 @@ public class JREsPreferencePage extends PreferencePage implements IWorkbenchPref
 	public boolean performOk() {
 		final boolean[] canceled = new boolean[] {false};
 		BusyIndicator.showWhile(null, new Runnable() {
+			@Override
 			public void run() {
 				IVMInstall defaultVM = getCurrentDefaultVM();
 				IVMInstall[] vms = fJREBlock.getJREs();
@@ -257,6 +264,7 @@ public class JREsPreferencePage extends PreferencePage implements IWorkbenchPref
 		// save column widths
 		IDialogSettings settings = JDIDebugUIPlugin.getDefault().getDialogSettings();
 		fJREBlock.saveColumnSettings(settings, IJavaDebugHelpContextIds.JRE_PREFERENCE_PAGE);
+		fJREBlock.initializeTimeStamp();
 		
 		return super.performOk();
 	}	
@@ -311,5 +319,31 @@ public class JREsPreferencePage extends PreferencePage implements IWorkbenchPref
 	public void dispose() {
 		super.dispose();
 		fJREBlock.dispose();
+	}
+
+	/*
+	 * @see org.eclipse.jface.preference.PreferencePage#okToLeave()
+	 */
+	@Override
+	public boolean okToLeave() {
+		if (fJREBlock != null && fJREBlock.hasChangesInDialog()) {
+			String title = JREMessages.JREsPreferencePage_4;
+			String message = JREMessages.JREsPreferencePage_5;
+			String[] buttonLabels = new String[] { JREMessages.JREsPreferencePage_6, JREMessages.JREsPreferencePage_7,
+					JREMessages.JREsPreferencePage_8 };
+			MessageDialog dialog = new MessageDialog(getShell(), title, null, message, MessageDialog.QUESTION, buttonLabels, 0);
+			int res = dialog.open();
+			if (res == 0) { // apply
+				return performOk() && super.okToLeave();
+			} else if (res == 1) { // discard
+				fJREBlock.fillWithWorkspaceJREs();
+				fJREBlock.restoreColumnSettings(JDIDebugUIPlugin.getDefault().getDialogSettings(), IJavaDebugHelpContextIds.JRE_PREFERENCE_PAGE);
+				initDefaultVM();
+				fJREBlock.initializeTimeStamp();
+			} else {
+				// apply later
+			}
+		}
+		return super.okToLeave();
 	}
 }

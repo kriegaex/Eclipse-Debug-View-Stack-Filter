@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2006, 2012 IBM Corporation and others.
+ * Copyright (c) 2006, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -54,9 +54,10 @@ public class DebugTypeSelectionDialog extends FilteredItemsSelectionDialog {
 	public class DebugTypeLabelProvider implements ILabelProvider {
 		HashMap<ImageDescriptor, Image> fImageMap = new HashMap<ImageDescriptor, Image>();
 
+		@Override
 		public Image getImage(Object element) {
 			if(element instanceof IAdaptable) {
-				IWorkbenchAdapter adapter = (IWorkbenchAdapter) ((IAdaptable)element).getAdapter(IWorkbenchAdapter.class);
+				IWorkbenchAdapter adapter = ((IAdaptable) element).getAdapter(IWorkbenchAdapter.class);
 				if(adapter != null) {
 					ImageDescriptor descriptor = adapter.getImageDescriptor(element);
 					Image image = fImageMap.get(descriptor);
@@ -69,6 +70,7 @@ public class DebugTypeSelectionDialog extends FilteredItemsSelectionDialog {
 			}
 			return null;
 		}
+		@Override
 		public String getText(Object element) {
 			if(element instanceof IType) {
 				IType type = (IType) element;
@@ -113,12 +115,16 @@ public class DebugTypeSelectionDialog extends FilteredItemsSelectionDialog {
 			return outer;
 		}
 
+		@Override
 		public void dispose() {
 			fImageMap.clear();
 			fImageMap = null;
 		}
+		@Override
 		public void addListener(ILabelProviderListener listener) {}
+		@Override
 		public boolean isLabelProperty(Object element, String property) {return false;}
+		@Override
 		public void removeListener(ILabelProviderListener listener) {}
 	}
 	
@@ -238,7 +244,8 @@ public class DebugTypeSelectionDialog extends FilteredItemsSelectionDialog {
 	@Override
 	protected Comparator getItemsComparator() {
 		Comparator<?> comp = new Comparator<Object>() {
-            public int compare(Object o1, Object o2) {
+            @Override
+			public int compare(Object o1, Object o2) {
             	if(o1 instanceof IType && o2 instanceof IType) {
             		return ((IType)o1).getElementName().compareTo(((IType)o2).getElementName());
             	}

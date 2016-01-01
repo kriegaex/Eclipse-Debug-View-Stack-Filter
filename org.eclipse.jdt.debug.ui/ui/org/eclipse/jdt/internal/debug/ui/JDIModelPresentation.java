@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2014 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -156,6 +156,7 @@ public class JDIModelPresentation extends LabelProvider implements IDebugModelPr
 	/**
 	 * @see IDebugModelPresentation#computeDetail(IValue, IValueDetailListener)
 	 */
+	@Override
 	public void computeDetail(IValue value, IValueDetailListener listener) {
 		IJavaThread thread = getEvaluationThread((IJavaDebugTarget)value.getDebugTarget());
 		if (thread == null) {
@@ -1078,7 +1079,7 @@ public class JDIModelPresentation extends LabelProvider implements IDebugModelPr
 	}
 	
 	private ImageDescriptor computeBaseImageDescriptor(IAdaptable element) {
-		IJavaVariable javaVariable= (IJavaVariable) element.getAdapter(IJavaVariable.class);
+		IJavaVariable javaVariable= element.getAdapter(IJavaVariable.class);
 		if (javaVariable != null) {
 			try {
 				if (javaVariable.isLocal()) {
@@ -1102,7 +1103,7 @@ public class JDIModelPresentation extends LabelProvider implements IDebugModelPr
 	
 	private int computeAdornmentFlags(IAdaptable element) {
 		int flags= 0;
-		IJavaModifiers javaProperties= (IJavaModifiers)element.getAdapter(IJavaModifiers.class);
+		IJavaModifiers javaProperties = element.getAdapter(IJavaModifiers.class);
 		try {
 			if (javaProperties != null) {
 				if (javaProperties.isFinal()) {
@@ -1121,6 +1122,7 @@ public class JDIModelPresentation extends LabelProvider implements IDebugModelPr
 	/**
 	 * @see IDebugModelPresentation#getEditorInput(Object)
 	 */
+	@Override
 	public IEditorInput getEditorInput(Object item) {
 		if (item instanceof IMarker) {
 			item = getBreakpoint((IMarker)item);
@@ -1154,6 +1156,7 @@ public class JDIModelPresentation extends LabelProvider implements IDebugModelPr
 	/**
 	 * @see IDebugModelPresentation#getEditorId(IEditorInput, Object)
 	 */
+	@Override
 	public String getEditorId(IEditorInput input, Object inputObject) {
 		try {
 			IEditorDescriptor descriptor= IDE.getEditorDescriptor(input.getName());
@@ -1166,6 +1169,7 @@ public class JDIModelPresentation extends LabelProvider implements IDebugModelPr
 	/**
 	 * @see IDebugModelPresentation#setAttribute(String, Object)
 	 */
+	@Override
 	public void setAttribute(String id, Object value) {
 		if (value == null) {
 			return;
@@ -1317,7 +1321,8 @@ public class JDIModelPresentation extends LabelProvider implements IDebugModelPr
 		    /* (non-Javadoc)
 		     * @see org.eclipse.debug.ui.IValueDetailListener#detailComputed(org.eclipse.debug.core.model.IValue, java.lang.String)
 		     */
-		    public void detailComputed(IValue computedValue, String result) {
+		    @Override
+			public void detailComputed(IValue computedValue, String result) {
 		        synchronized (lock) {
 		            detail[0]= result;
 		            lock.notifyAll();
@@ -1758,7 +1763,7 @@ public class JDIModelPresentation extends LabelProvider implements IDebugModelPr
 	}	
 
 	protected String getStackFrameText(IStackFrame stackFrame) throws DebugException {
-		IJavaStackFrame frame= (IJavaStackFrame) stackFrame.getAdapter(IJavaStackFrame.class);
+		IJavaStackFrame frame= stackFrame.getAdapter(IJavaStackFrame.class);
 		if (frame != null) {
 			StringBuffer label= new StringBuffer();
 			
@@ -2029,6 +2034,7 @@ public class JDIModelPresentation extends LabelProvider implements IDebugModelPr
 	/* (non-Javadoc)
 	 * @see org.eclipse.jface.viewers.IColorProvider#getForeground(java.lang.Object)
 	 */
+	@Override
 	public Color getForeground(Object element) {
 		if (element instanceof JavaContendedMonitor && ((JavaContendedMonitor)element).getMonitor().isInDeadlock()) {
 			return PlatformUI.getWorkbench().getThemeManager().getCurrentTheme().getColorRegistry().get(IJDIPreferencesConstants.PREF_THREAD_MONITOR_IN_DEADLOCK_COLOR);
@@ -2051,6 +2057,7 @@ public class JDIModelPresentation extends LabelProvider implements IDebugModelPr
 	/* (non-Javadoc)
 	 * @see org.eclipse.jface.viewers.IColorProvider#getBackground(java.lang.Object)
 	 */
+	@Override
 	public Color getBackground(Object element) {
 		return null;
 	}
@@ -2062,6 +2069,7 @@ public class JDIModelPresentation extends LabelProvider implements IDebugModelPr
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.ui.IDebugModelPresentationExtension#requiresUIThread(java.lang.Object)
 	 */
+	@Override
 	public synchronized boolean requiresUIThread(Object element) {
 		return !isInitialized();
 	}

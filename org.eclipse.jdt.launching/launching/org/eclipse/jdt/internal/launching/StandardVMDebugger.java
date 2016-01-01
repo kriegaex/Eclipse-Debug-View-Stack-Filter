@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2012 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -7,6 +7,7 @@
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
+ *     Alex Smirnoff   - Bug 289916
  *******************************************************************************/
 package org.eclipse.jdt.internal.launching;
 
@@ -105,6 +106,7 @@ public class StandardVMDebugger extends StandardVMRunner {
 			fConnectionMap = map;
 		}
 		
+		@Override
 		public void run() {
 			try {
 				fVirtualMachine = fConnector.accept(fConnectionMap);
@@ -444,7 +446,7 @@ public class StandardVMDebugger extends StandardVMRunner {
 							var = env[i].substring(0, esign);
 							if(var != null && var.equalsIgnoreCase("path")) { //$NON-NLS-1$
 								if(env[i].indexOf(jrestr) == -1) {
-									env[i] = var + "="+jrestr+';'+(esign == env.length ? "" : env[i].substring(esign+1)); //$NON-NLS-1$ //$NON-NLS-2$
+									env[i] = var + "="+jrestr+';'+(esign == env[i].length() ? "" : env[i].substring(esign+1)); //$NON-NLS-1$ //$NON-NLS-2$
 									break;
 								}
 							}
@@ -546,12 +548,14 @@ public class StandardVMDebugger extends StandardVMRunner {
 	 * Returns the default 'com.sun.jdi.SocketListen' connector
 	 * @return the {@link ListeningConnector}
 	 */
+	@SuppressWarnings("nls")
 	protected ListeningConnector getConnector() {
 		List<ListeningConnector> connectors= Bootstrap.virtualMachineManager().listeningConnectors();
 		for (int i= 0; i < connectors.size(); i++) {
 			ListeningConnector c= connectors.get(i);
-			if ("com.sun.jdi.SocketListen".equals(c.name())) //$NON-NLS-1$
+			if ("com.sun.jdi.SocketListen".equals(c.name())) {
 				return c;
+			}
 		}
 		return null;
 	}

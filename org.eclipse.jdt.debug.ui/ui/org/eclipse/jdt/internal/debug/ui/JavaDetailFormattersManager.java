@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2000, 2012 IBM Corporation and others.
+ * Copyright (c) 2000, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -130,6 +130,7 @@ public class JavaDetailFormattersManager implements IPropertyChangeListener, IDe
 	 */	
 	public void computeValueDetail(final IJavaValue objectValue, final IJavaThread thread, final IValueDetailListener listener) {
 		thread.queueRunnable(new Runnable() {
+			@Override
 			public void run() {
 				resolveFormatter(objectValue, thread, listener);
 			}
@@ -192,7 +193,7 @@ public class JavaDetailFormattersManager implements IPropertyChangeListener, IDe
 			return type.getJavaProject();
 		}
 		IJavaStackFrame stackFrame= null;
-		IJavaDebugTarget target = (IJavaDebugTarget)javaValue.getDebugTarget().getAdapter(IJavaDebugTarget.class);
+		IJavaDebugTarget target = javaValue.getDebugTarget().getAdapter(IJavaDebugTarget.class);
 		if (target != null) {
 			stackFrame= (IJavaStackFrame) thread.getTopStackFrame();
 			if (stackFrame != null && !stackFrame.getDebugTarget().equals(target)) {
@@ -433,6 +434,7 @@ public class JavaDetailFormattersManager implements IPropertyChangeListener, IDe
 	/**
 	 * @see org.eclipse.jface.util.IPropertyChangeListener#propertyChange(PropertyChangeEvent)
 	 */
+	@Override
 	public void propertyChange(PropertyChangeEvent event) {
 		String property = event.getProperty();
 		if (property.equals(IJDIPreferencesConstants.PREF_DETAIL_FORMATTERS_LIST) ||
@@ -444,7 +446,7 @@ public class JavaDetailFormattersManager implements IPropertyChangeListener, IDe
 			// it so the variables view will update for any formatter changes.
             IAdaptable selected = DebugUITools.getDebugContext();
             if (selected != null) {
-                IJavaStackFrame frame= (IJavaStackFrame) selected.getAdapter(IJavaStackFrame.class);
+                IJavaStackFrame frame= selected.getAdapter(IJavaStackFrame.class);
                 if (frame != null) {
                     DebugPlugin.getDefault().fireDebugEventSet(new DebugEvent[] { 
                             new DebugEvent(frame, DebugEvent.CHANGE)
@@ -456,6 +458,7 @@ public class JavaDetailFormattersManager implements IPropertyChangeListener, IDe
 	/**
 	 * @see org.eclipse.debug.core.IDebugEventSetListener#handleDebugEvents(DebugEvent[])
 	 */
+	@Override
 	public void handleDebugEvents(DebugEvent[] events) {
 		for (int i = 0; i < events.length; i++) {
 			DebugEvent event = events[i];
@@ -468,18 +471,21 @@ public class JavaDetailFormattersManager implements IPropertyChangeListener, IDe
 	/**
 	 * @see org.eclipse.debug.core.ILaunchesListener#launchesAdded(ILaunch[])
 	 */
+	@Override
 	public void launchesAdded(ILaunch[] launches) {
 	}
 	
 	/**
 	 * @see org.eclipse.debug.core.ILaunchesListener#launchesChanged(ILaunch[])
 	 */
+	@Override
 	public void launchesChanged(ILaunch[] launches) {
 	}
 	
 	/**
 	 * @see org.eclipse.debug.core.ILaunchesListener#launchesRemoved(ILaunch[])
 	 */
+	@Override
 	public void launchesRemoved(ILaunch[] launches) {
 		for (int i = 0; i < launches.length; i++) {
 			ILaunch launch = launches[i];
@@ -590,6 +596,7 @@ public class JavaDetailFormattersManager implements IPropertyChangeListener, IDe
 			fListener= listener;
 		}
 		
+		@Override
 		public void evaluationComplete(IEvaluationResult result) {
 			if (result.hasErrors()) {
 				StringBuffer error= new StringBuffer(DebugUIMessages.JavaDetailFormattersManager_Detail_formatter_error___1); 
@@ -650,6 +657,7 @@ public class JavaDetailFormattersManager implements IPropertyChangeListener, IDe
 			}
 			
 			IEvaluationRunnable eval = new IEvaluationRunnable() {
+				@Override
 				public void run(IJavaThread thread, IProgressMonitor monitor) throws DebugException {
 					StringBuffer buf= new StringBuffer();
 					if (objectValue instanceof IJavaArray) {

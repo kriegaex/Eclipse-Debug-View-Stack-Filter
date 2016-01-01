@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2004, 2012 IBM Corporation and others.
+ * Copyright (c) 2004, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -17,14 +17,11 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.debug.core.DebugEvent;
 import org.eclipse.debug.core.DebugException;
-import org.eclipse.debug.core.ILaunch;
-import org.eclipse.debug.core.model.ISourceLocator;
 import org.eclipse.debug.core.model.IValue;
 import org.eclipse.debug.core.model.IVariable;
 import org.eclipse.debug.ui.DebugUITools;
 import org.eclipse.debug.ui.IDebugUIConstants;
 import org.eclipse.debug.ui.actions.IVariableValueEditor;
-import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.debug.core.IJavaDebugTarget;
 import org.eclipse.jdt.debug.core.IJavaStackFrame;
@@ -34,6 +31,7 @@ import org.eclipse.jdt.debug.eval.IAstEvaluationEngine;
 import org.eclipse.jdt.debug.eval.IEvaluationListener;
 import org.eclipse.jdt.debug.eval.IEvaluationResult;
 import org.eclipse.jdt.internal.debug.core.JDIDebugPlugin;
+import org.eclipse.jdt.internal.debug.core.JavaDebugUtils;
 import org.eclipse.jdt.internal.debug.ui.JDIDebugUIPlugin;
 import org.eclipse.jface.window.Window;
 import org.eclipse.osgi.util.NLS;
@@ -53,7 +51,8 @@ public class JavaObjectValueEditor implements IVariableValueEditor {
     /* (non-Javadoc)
      * @see org.eclipse.debug.ui.actions.IVariableValueEditor#editVariable(org.eclipse.debug.core.model.IVariable, org.eclipse.swt.widgets.Shell)
      */
-    public boolean editVariable(IVariable variable, Shell shell) {
+    @Override
+	public boolean editVariable(IVariable variable, Shell shell) {
         try {
             IJavaVariable javaVariable = (IJavaVariable) variable;
             String signature = javaVariable.getSignature();
@@ -83,7 +82,8 @@ public class JavaObjectValueEditor implements IVariableValueEditor {
     /* (non-Javadoc)
      * @see org.eclipse.debug.ui.actions.IVariableValueEditor#saveVariable(org.eclipse.debug.core.model.IVariable, java.lang.String, org.eclipse.swt.widgets.Shell)
      */
-    public boolean saveVariable(IVariable variable, String expression, Shell shell) {
+    @Override
+	public boolean saveVariable(IVariable variable, String expression, Shell shell) {
         IJavaVariable javaVariable = (IJavaVariable) variable;
         String signature= null;
         try {
@@ -148,7 +148,7 @@ public class JavaObjectValueEditor implements IVariableValueEditor {
      */
     private IValue evaluate(String stringValue) throws DebugException {
         IAdaptable adaptable = DebugUITools.getDebugContext();
-        IJavaStackFrame frame= (IJavaStackFrame) adaptable.getAdapter(IJavaStackFrame.class);
+		IJavaStackFrame frame = adaptable.getAdapter(IJavaStackFrame.class);
         if (frame != null) {
             IJavaThread thread = (IJavaThread) frame.getThread();
             IJavaProject project= getProject(frame);
@@ -156,7 +156,8 @@ public class JavaObjectValueEditor implements IVariableValueEditor {
                 final IEvaluationResult[] results= new IEvaluationResult[1];
                 IAstEvaluationEngine engine = JDIDebugPlugin.getDefault().getEvaluationEngine(project, (IJavaDebugTarget) thread.getDebugTarget());
                 IEvaluationListener listener= new IEvaluationListener() {
-                    public void evaluationComplete(IEvaluationResult result) {
+                    @Override
+					public void evaluationComplete(IEvaluationResult result) {
                         synchronized (JavaObjectValueEditor.this) {
                             results[0]= result;
                             JavaObjectValueEditor.this.notifyAll();
@@ -234,22 +235,6 @@ public class JavaObjectValueEditor implements IVariableValueEditor {
 	 * (copied from JavaWatchExpressionDelegate)
 	 */
 	private IJavaProject getProject(IJavaStackFrame javaStackFrame) {
-		ILaunch launch = javaStackFrame.getLaunch();
-		if (launch == null) {
-			return null;
-		}
-		ISourceLocator locator= launch.getSourceLocator();
-		if (locator == null) {
-			return null;
-		}
-
-		Object sourceElement = locator.getSourceElement(javaStackFrame);
-		if (!(sourceElement instanceof IJavaElement) && sourceElement instanceof IAdaptable) {
-			sourceElement = ((IAdaptable)sourceElement).getAdapter(IJavaElement.class);
-		}
-		if (sourceElement instanceof IJavaElement) {
-			return ((IJavaElement) sourceElement).getJavaProject();
-		}
-		return null;
+		return JavaDebugUtils.resolveJavaProject(javaStackFrame);
 	}
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2006, 2007 IBM Corporation and others.
+ * Copyright (c) 2006, 2015 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -26,6 +26,7 @@ public class JavaVariableColumnPresentationFactory implements IColumnPresentatio
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.internal.ui.viewers.provisional.IColumnPresentationFactoryAdapter#createColumnPresentation(org.eclipse.debug.internal.ui.viewers.provisional.IPresentationContext, java.lang.Object)
 	 */
+	@Override
 	public IColumnPresentation createColumnPresentation(IPresentationContext context, Object element) {
 		if (isApplicable(context, element)) {
 			return new JavaVariableColumnPresentation();
@@ -36,6 +37,7 @@ public class JavaVariableColumnPresentationFactory implements IColumnPresentatio
 	/* (non-Javadoc)
 	 * @see org.eclipse.debug.internal.ui.viewers.provisional.IColumnPresentationFactoryAdapter#getColumnPresentationId(org.eclipse.debug.internal.ui.viewers.provisional.IPresentationContext, java.lang.Object)
 	 */
+	@Override
 	public String getColumnPresentationId(IPresentationContext context, Object element) {
 		if (isApplicable(context, element)) {
 			return JavaVariableColumnPresentation.JAVA_VARIABLE_COLUMN_PRESENTATION;
@@ -48,7 +50,7 @@ public class JavaVariableColumnPresentationFactory implements IColumnPresentatio
 		if (IDebugUIConstants.ID_VARIABLE_VIEW.equals(context.getId())) {
 			if (element instanceof IAdaptable) {
 				IAdaptable adaptable = (IAdaptable)element;
-				frame = (IJavaStackFrame) adaptable.getAdapter(IJavaStackFrame.class);
+				frame = adaptable.getAdapter(IJavaStackFrame.class);
 			}
 		}
 		return frame != null;		

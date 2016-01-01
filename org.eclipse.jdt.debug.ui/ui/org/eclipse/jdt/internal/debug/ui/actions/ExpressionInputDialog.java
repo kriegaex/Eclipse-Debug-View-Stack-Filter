@@ -1,5 +1,5 @@
 /*******************************************************************************
- *  Copyright (c) 2004, 2014 IBM Corporation and others.
+ *  Copyright (c) 2004, 2015 IBM Corporation and others.
  *  All rights reserved. This program and the accompanying materials
  *  are made available under the terms of the Eclipse Public License v1.0
  *  which accompanies this distribution, and is available at
@@ -206,9 +206,11 @@ public class ExpressionInputDialog extends TrayDialog {
 		document.set(getInitialText(fVariable));	
 		
 		fDocumentListener= new IDocumentListener() {
-            public void documentAboutToBeChanged(DocumentEvent event) {
+            @Override
+			public void documentAboutToBeChanged(DocumentEvent event) {
             }
-            public void documentChanged(DocumentEvent event) {
+            @Override
+			public void documentChanged(DocumentEvent event) {
                 refreshValidState(fSourceViewer);
             }
         };
@@ -222,13 +224,14 @@ public class ExpressionInputDialog extends TrayDialog {
      */
     private void activateHandler(){
     	IHandler handler = new AbstractHandler() {
+			@Override
 			public Object execute(ExecutionEvent event) throws org.eclipse.core.commands.ExecutionException {
 				fSourceViewer.doOperation(ISourceViewer.CONTENTASSIST_PROPOSALS);
 				return null;
 			}
 		};
 		IWorkbench workbench = PlatformUI.getWorkbench();
-		fService = (IHandlerService)workbench.getAdapter(IHandlerService.class);
+		fService = workbench.getAdapter(IHandlerService.class);
 		fActivation = fService.activateHandler(ITextEditorActionDefinitionIds.CONTENT_ASSIST_PROPOSALS, handler);
     }
       
